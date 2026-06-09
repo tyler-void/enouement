@@ -51,6 +51,11 @@ bun run report
 
 ### LLM endpoint
 Auto-detected (priority order). Pick ONE:
+- **GitHub Models** (free, any GitHub account) — measures the **routing lever** (gpt-4o vs
+  gpt-4o-mini) that Gemini's free tier can't. Create a PAT with the **`models`** scope
+  (github.com → Settings → Developer settings → Fine-grained tokens → Models: read), then add
+  `GITHUB_MODELS_TOKEN=...` to the repo-root `.env`. Auto-detected; `bun run bench`.
+  Rate-limited (~10 RPM / 50 req/day for gpt-4o) — run small: `BENCH_PROFILES=A0,A2,A5 BENCH_RUNS=1 BENCH_PACE_MS=7000`.
 - **Gemini** (your free key) — auto-detected from the repo-root `.env` `GEMINI_API_KEY`. Uses
   Gemini's OpenAI-compatible endpoint. Zero config: just `bun run bench`.
 - **Anthropic native** (best for accurate caching measurement): `export ANTHROPIC_API_KEY=sk-...`

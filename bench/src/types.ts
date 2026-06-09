@@ -56,7 +56,7 @@ export interface ChatMessage {
 export interface Profile {
   id: string; // "A0".."A5"
   label: string;
-  provider: "anthropic" | "openai-compat" | "gemini";
+  provider: "anthropic" | "openai-compat" | "gemini" | "github-models";
   model: string; // must exist in pricing.ts
   caching: boolean; // inject cache_control / rely on auto caching
   retrieval: boolean; // replace raw grep/read with compact retrieval tool

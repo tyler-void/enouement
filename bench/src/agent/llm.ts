@@ -212,14 +212,17 @@ function safeJson(s: string): Record<string, unknown> {
 }
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+const GITHUB_MODELS_BASE_URL = "https://models.github.ai/inference";
 
 /** Build the client a profile asks for. */
 export function makeClient(provider: string, model: string): LLMClient {
   if (provider === "anthropic") return new AnthropicClient(model);
   if (provider === "gemini")
+    return new OpenAICompatClient(model, { baseURL: GEMINI_BASE_URL, apiKey: process.env.GEMINI_API_KEY });
+  if (provider === "github-models")
     return new OpenAICompatClient(model, {
-      baseURL: GEMINI_BASE_URL,
-      apiKey: process.env.GEMINI_API_KEY,
+      baseURL: GITHUB_MODELS_BASE_URL,
+      apiKey: process.env.GITHUB_MODELS_TOKEN,
     });
   return new OpenAICompatClient(model);
 }

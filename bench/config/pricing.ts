@@ -29,6 +29,11 @@ export const PRICING: Record<string, ModelPrice> = {
   // endpoint, so the A1 caching lever may read 0 on Gemini — use Anthropic for caching numbers.
   "gemini-2.5-flash": { input: 0.3, cachedRead: 0.075, cacheWrite: 0.3, output: 2.5 },
   "gemini-2.5-pro": { input: 1.25, cachedRead: 0.3125, cacheWrite: 1.25, output: 10.0 },
+
+  // GitHub Models (OpenAI-compatible, free PAT tier). Cost-modeled at OpenAI list rates; the
+  // free tier itself is $0 but rate-limited (~10 RPM / 50 RPD for gpt-4o).
+  "gpt-4o": { input: 2.5, cachedRead: 1.25, cacheWrite: 2.5, output: 10.0 },
+  "gpt-4o-mini": { input: 0.15, cachedRead: 0.075, cacheWrite: 0.15, output: 0.6 },
 };
 
 export function priceFor(model: string): ModelPrice {

@@ -3,12 +3,13 @@
 
 import type { Profile } from "./types";
 
-export type Provider = "anthropic" | "openai-compat" | "gemini";
+export type Provider = "anthropic" | "openai-compat" | "gemini" | "github-models";
 
 export function detectProvider(): Provider {
   const explicit = process.env.LLM_PROVIDER as Provider | undefined;
-  if (explicit === "anthropic" || explicit === "openai-compat" || explicit === "gemini")
+  if (explicit === "anthropic" || explicit === "openai-compat" || explicit === "gemini" || explicit === "github-models")
     return explicit;
+  if (process.env.GITHUB_MODELS_TOKEN) return "github-models";
   if (process.env.LLM_BASE_URL || process.env.LLM_API_KEY) return "openai-compat";
   if (process.env.ANTHROPIC_API_KEY) return "anthropic";
   if (process.env.GEMINI_API_KEY) return "gemini";
@@ -23,6 +24,7 @@ interface Models {
 function modelsFor(provider: Provider): Models {
   if (provider === "anthropic") return { premium: "claude-sonnet-4-6", cheap: "claude-haiku-4-5" };
   if (provider === "gemini") return { premium: "gemini-2.5-pro", cheap: "gemini-2.5-flash" };
+  if (provider === "github-models") return { premium: "gpt-4o", cheap: "gpt-4o-mini" };
   return { premium: "gpt-5", cheap: "gpt-5-mini" };
 }
 
