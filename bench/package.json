@@ -1,0 +1,17 @@
+{
+  "name": "eco-mcp-bench",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Ablation benchmark harness: measures token/cost savings of each Eco-MCP gateway lever vs a raw baseline.",
+  "scripts": {
+    "bench": "bun run src/run.ts",
+    "report": "bun run src/report/waterfall.ts",
+    "smoke": "bun run src/smoke.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "openai": "^4.80.0",
+    "gpt-tokenizer": "^2.8.1"
+  }
+}

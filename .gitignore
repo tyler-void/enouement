@@ -1,0 +1,17 @@
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# benchmark OSS clones (reproduced via clone cmd, not tracked)
+bench/fixtures/oss/
+bench/results/
+bench/node_modules/
+bench/.tools/
+
+node_modules/
+
+# internal brainstorm — company/contest names + strategy, keep local only
+gemini.md
+before.md

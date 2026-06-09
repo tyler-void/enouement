@@ -1,0 +1,15 @@
+{
+  "name": "eco-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Eco-MCP Gateway — a token-thrifty MCP server: structural code-graph retrieval, tuned semantic search, and compressed command output. Lets cheap models do real work.",
+  "bin": { "eco-mcp": "src/server.ts" },
+  "scripts": {
+    "start": "bun run src/server.ts",
+    "test:client": "bun run test/client.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.25.0"
+  }
+}
