@@ -15,9 +15,19 @@ see [docs/research/benchmark-results.md](docs/research/benchmark-results.md).
 | `find_concept` | semantic search over the graph for a NL concept | compact symbol hits, no file dumps |
 | `retrieve` | tuned semantic chunks (small k) when you must see code | small k — naive top-k isn't a win (we measured) |
 | `run_command` | run tests/build/lint, return **failures-only** output | strips passing/INFO noise |
+| `repo_map` | token-budgeted map of the most-referenced symbols (PageRank proxy) | orient in a repo without listing/reading files |
+| `get_context` | read the module's **Context Pack** (`.context/*.md` living docs) | digested domain knowledge, not source |
+| `update_context` | persist what you learned to `.context/domain_logic.md` (CCI) | next agent reads ~1k tokens, not the module |
 
 > Design finding baked in: the token win comes from **structural retrieval + routing**, not from
 > bolting on a vector DB. `search_structure` is the default; semantic is tuned and secondary.
+
+### Continuous Context Integration (CCI)
+`get_context`/`update_context` turn the repo into a **living knowledge base**: after finishing a
+task, the agent writes the distilled domain logic (business rules, decisions, gotchas) into
+`<module>/.context/domain_logic.md`, staged into the PR so **code review = context review**. Next
+sprint, an agent reads that ~1k-token Context Pack instead of the whole module. The synthesis is
+done by the agent's own model — no extra API key needed.
 
 ## Requirements
 - [Bun](https://bun.sh) ≥ 1.3
@@ -65,6 +75,7 @@ lazily on first query.
 - `vendor/` — the upstream tools we build on (git submodules, MIT/Apache-2.0)
 
 ## Status
-v0: retrieval + compressed command output, working and installable. Not yet built: the cache-aware
-egress + burn-rate meter, model routing, and CCI / Context Packs (auto living-docs). See
+v0: retrieval (`search_structure`/`find_concept`/`retrieve`), compressed `run_command`, the
+`repo_map`, and **CCI Context Packs** (`get_context`/`update_context`) — all working and
+installable. Not yet built: cache-aware egress + burn-rate meter, and model routing. See
 [docs/vision/demo-plan.md](docs/vision/demo-plan.md).

@@ -16,6 +16,7 @@ import { Structural } from "./backends/structural";
 import { Semantic } from "./backends/semantic";
 import { compressOutput } from "./util/compress";
 import { workspaceRoot } from "./util/bin";
+import { findContextPacks, writeContextPack } from "./util/context";
 
 const structural = new Structural();
 const semantic = new Semantic();
@@ -109,6 +110,90 @@ server.registerTool(
         ? `\n\n[eco-mcp: compressed ${c.before}→${c.after} chars, exit ${p.exitCode}]`
         : `\n\n[eco-mcp: exit ${p.exitCode}]`;
     return { content: [{ type: "text", text: (c.text || "(no output)") + note }] };
+  },
+);
+
+// --- CCI / Context Packs --------------------------------------------------
+
+server.registerTool(
+  "repo_map",
+  {
+    title: "Compact repo map",
+    description:
+      "A token-budgeted map of the most IMPORTANT symbols in the repo, ranked by how many things " +
+      "reference them (call in-degree — a PageRank proxy). Read this FIRST to orient in an unfamiliar " +
+      "codebase instead of listing/reading files. Returns symbol + file + signature, grouped by file.",
+    inputSchema: {
+      path: z.string().optional(),
+      limit: z.number().int().min(10).max(200).optional().describe("max symbols (default 60)"),
+    },
+  },
+  async ({ path, limit }) => {
+    if (!structural.available())
+      return { content: [{ type: "text", text: "codebase-memory-mcp not found (set ECO_CBM_BIN)" }] };
+    const SKIP = new Set(["Route", "Folder", "File", "Module"]); // keep real code defs (incl. #private)
+    const syms = structural
+      .allSymbols(path ?? workspaceRoot())
+      .filter((s) => s.name && !SKIP.has(s.label))
+      .sort((a, b) => b.inDeg + b.outDeg - (a.inDeg + a.outDeg))
+      .slice(0, limit ?? 60);
+    if (!syms.length) return { content: [{ type: "text", text: "no symbols indexed" }] };
+    const byFile = new Map<string, string[]>();
+    for (const s of syms) {
+      const line = `  ${s.name} (${s.label})${s.signature}  [refs:${s.inDeg}]`;
+      (byFile.get(s.file) ?? byFile.set(s.file, []).get(s.file)!).push(line);
+    }
+    const text = [`# Repo map — top ${syms.length} symbols by reference count`, ...[...byFile].map(([f, ls]) => `\n${f}\n${ls.join("\n")}`)].join("\n");
+    return { content: [{ type: "text", text }] };
+  },
+);
+
+server.registerTool(
+  "get_context",
+  {
+    title: "Get Context Pack",
+    description:
+      "Read the module's living Context Pack(s) — distilled domain knowledge stored in .context/*.md " +
+      "alongside the code (business rules, gotchas, architecture). Read this BEFORE diving into a " +
+      "module: it's the digested knowledge a teammate would give you, at a fraction of the tokens of " +
+      "reading the source. Layered: module-specific first, broader context after.",
+    inputSchema: { path: z.string().optional().describe("file or dir you're about to work on") },
+  },
+  async ({ path }) => {
+    const packs = findContextPacks(workspaceRoot(), path ?? ".");
+    if (!packs.length)
+      return {
+        content: [
+          {
+            type: "text",
+            text: "No Context Pack yet for this path. After you finish work here, call update_context to capture the domain knowledge for the next agent.",
+          },
+        ],
+      };
+    const text = packs.map((p) => `===== ${p.path} =====\n${p.content}`).join("\n\n");
+    return { content: [{ type: "text", text }] };
+  },
+);
+
+server.registerTool(
+  "update_context",
+  {
+    title: "Update Context Pack",
+    description:
+      "Persist distilled domain knowledge to <module>/.context/domain_logic.md (Continuous Context " +
+      "Integration). Call this AFTER completing a task: summarize the business logic, key decisions, " +
+      "and gotchas you learned (NOT a code dump) so the next agent reads 1k tokens instead of the " +
+      "whole module. The file is staged into the PR for review. Append by default.",
+    inputSchema: {
+      module: z.string().describe("the module dir this knowledge belongs to, e.g. src/modules/payment"),
+      content: z.string().describe("concise markdown: domain logic, decisions, edge cases, gotchas"),
+      file: z.string().optional().describe("default domain_logic.md"),
+      mode: z.enum(["append", "replace"]).optional(),
+    },
+  },
+  async ({ module, content, file, mode }) => {
+    const rel = writeContextPack(workspaceRoot(), module, content, { file, mode });
+    return { content: [{ type: "text", text: `Context Pack updated: ${rel} (stage it in your PR for review).` }] };
   },
 );
 
