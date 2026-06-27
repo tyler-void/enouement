@@ -47,6 +47,21 @@ export class Structural {
       .join("\n");
   }
 
+  /** All symbols with call-degree, for ranking a repo map (PageRank proxy = reference count). */
+  allSymbols(workdir: string): Array<{ name: string; label: string; file: string; signature: string; inDeg: number; outDeg: number }> {
+    const project = this.project(workdir);
+    if (!project) return [];
+    const res = this.cli("search_graph", { project, name_pattern: ".*" });
+    return (res?.results ?? []).map((r: any) => ({
+      name: r.name,
+      label: r.label,
+      file: r.file_path,
+      signature: r.signature ?? "",
+      inDeg: r.in_degree ?? 0,
+      outDeg: r.out_degree ?? 0,
+    }));
+  }
+
   /** Semantic vector search over the graph (codebase-memory has nomic-embed baked in). */
   semantic(workdir: string, query: string, k = 8): string {
     const project = this.project(workdir);

@@ -31,6 +31,7 @@ Date every substantive update.
 - [infra/architecture.md](infra/architecture.md) — the gateway design; **6 pillars** (0–5) + data flow.
 - [infra/recommended-stack.md](infra/recommended-stack.md) — ⭐ decisive tool picks per layer + the `BackendAdapter` orchestration contract.
 - [infra/reference-repos.md](infra/reference-repos.md) — the 7 vendored submodules, licenses, clone status.
+- [infra/footprint-and-deployment.md](infra/footprint-and-deployment.md) — measured RAM/CPU/disk; local-vs-hosted decision (local-first).
 
 ### Vendored repos
 The 7 reference repos are cloned as shallow git submodules under `vendor/` (all MIT/Apache-2.0).
