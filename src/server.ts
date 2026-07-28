@@ -3,9 +3,10 @@
 //
 // Exposes token-thrifty code tools so cheap models can do real work:
 //   - search_structure : code-graph symbol search (the measured ~97% token winner)
-//   - find_concept     : semantic search over the graph (fuzzy/conceptual queries)
 //   - retrieve         : tuned semble semantic chunks (small k) for when graph misses
-//   - run_command      : run a shell command and return COMPRESSED (failures-only) output
+//
+// Removed 2026-07-28: `find_concept` and `run_command` — both returned confidently wrong
+// output. See docs/research/discovery-2026-07-28.md §6.1 and §6.2.
 //
 // IMPORTANT: MCP stdio uses stdout for the JSON-RPC channel — all logging goes to stderr.
 
@@ -14,7 +15,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { Structural } from "./backends/structural";
 import { Semantic } from "./backends/semantic";
-import { compressOutput } from "./util/compress";
 import { workspaceRoot } from "./util/bin";
 import { findContextPacks, writeContextPack } from "./util/context";
 
@@ -47,32 +47,12 @@ server.registerTool(
 );
 
 server.registerTool(
-  "find_concept",
-  {
-    title: "Find code by concept",
-    description:
-      "Semantic vector search over the code graph for a natural-language concept (e.g. 'where is " +
-      "rate limiting handled'). Returns matching symbols + locations, token-light. Use when there's " +
-      "no obvious literal keyword to search for.",
-    inputSchema: {
-      query: z.string().describe("natural-language description of the code you're looking for"),
-      path: z.string().optional(),
-    },
-  },
-  async ({ query, path }) => {
-    if (!structural.available())
-      return { content: [{ type: "text", text: "codebase-memory-mcp not found (set ECO_CBM_BIN)" }] };
-    return { content: [{ type: "text", text: structural.semantic(path ?? workspaceRoot(), query) }] };
-  },
-);
-
-server.registerTool(
   "retrieve",
   {
     title: "Retrieve code chunks (semantic)",
     description:
       "Tuned semantic retrieval (semble): returns the top few relevant code chunks for a query. " +
-      "Prefer search_structure/find_concept for locating symbols; use this when you need to SEE the " +
+      "Prefer search_structure for locating symbols; use this when you need to SEE the " +
       "actual code for a fuzzy concept. Kept to a small k to stay token-thrifty.",
     inputSchema: {
       query: z.string(),
@@ -84,32 +64,6 @@ server.registerTool(
     if (!semantic.available())
       return { content: [{ type: "text", text: "semble not found (set ECO_SEMBLE_BIN or `uv tool install semble`)" }] };
     return { content: [{ type: "text", text: semantic.search(path ?? workspaceRoot(), query, k ?? 3) }] };
-  },
-);
-
-server.registerTool(
-  "run_command",
-  {
-    title: "Run command (compressed output)",
-    description:
-      "Run a shell command (tests, build, lint) in the workspace and return its output with noise " +
-      "stripped — failures/errors/stack traces only for test runs. Cuts the tokens an agent pays to " +
-      "read verbose logs. Returns a one-line savings note.",
-    inputSchema: {
-      command: z.string().describe("the shell command, e.g. 'bun test' or 'npm run build'"),
-      cwd: z.string().optional(),
-      raw: z.boolean().optional().describe("set true to skip compression"),
-    },
-  },
-  async ({ command, cwd, raw }) => {
-    const p = Bun.spawnSync(["sh", "-c", command], { cwd: cwd ?? workspaceRoot() });
-    const out = `${p.stdout?.toString() ?? ""}${p.stderr?.toString() ?? ""}`;
-    const c = compressOutput(out, { mode: raw ? "raw" : "auto" });
-    const note =
-      c.before > c.after
-        ? `\n\n[eco-mcp: compressed ${c.before}→${c.after} chars, exit ${p.exitCode}]`
-        : `\n\n[eco-mcp: exit ${p.exitCode}]`;
-    return { content: [{ type: "text", text: (c.text || "(no output)") + note }] };
   },
 );
 
