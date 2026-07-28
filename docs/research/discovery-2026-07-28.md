@@ -355,9 +355,9 @@ entirely unmanaged.
 `resolve()` happily accepts `../` and absolute paths. Demonstrated in a throwaway sandbox:
 
 ```
-workspace declared : /tmp/eco-traversal-sELZWS/workspace
+workspace declared : <temp-dir-5>/workspace
 tool reported      : Context Pack updated: ../OUTSIDE-THE-WORKSPACE/.context/domain_logic.md (stage it in your PR for review).
-wrote outside ws?  : YES -> /tmp/eco-traversal-sELZWS/OUTSIDE-THE-WORKSPACE/.context/domain_logic.md
+wrote outside ws?  : YES -> <temp-dir-5>/OUTSIDE-THE-WORKSPACE/.context/domain_logic.md
 content            : "escaped the declared workspace\n"
 
 absolute module    : Context Pack updated: ../ABSOLUTE-TARGET/.context/domain_logic.md (stage it in your PR for review).
@@ -669,9 +669,9 @@ server with no timeout and no cancellation.
 machine, four of them dead temp directories created by test runs:
 
 ```
-"available_projects":["home-thai-Documents-Projects-eco-mcp-bench-fixtures-sample-app",
-"tmp-ecosmoke-ws5MHG","tmp-ecosmoke-3IWi3N","tmp-ecosmoke-ltUSZG","tmp-ecobench-nVyaoN",
-"home-thai-Documents-Projects-eco-mcp-bench-fixtures-oss-hono"]
+"available_projects":["<local-path>-bench-fixtures-sample-app",
+"<temp-dir-1>","<temp-dir-2>","<temp-dir-3>","<temp-dir-4>",
+"<local-path>-bench-fixtures-oss-hono"]
 ```
 
 Nothing in eco-mcp cleans up. Every `bun run test:client` (`test/client.ts:39-44`) permanently
@@ -708,12 +708,9 @@ shell commands, and other important information, read the current plan
 It points every agent at a plan that does not exist, and contains nothing about eco-mcp. Replacing
 this with a real CLAUDE.md is a five-minute, high-value fix independent of any repositioning.
 
-**`before.md` (4.9 K) and `gemini.md` (37 K)** — both open with the same Vietnamese competition
-2026 contest announcement (513 identical characters before diverging); `gemini.md` continues into a
-model conversation transcript. Working notes, not project files. `docs.md` (16 K, untracked) is
-different and worth keeping — it is the OK-AI-Agent baseline written 2026-07-17, and it is directly
-relevant to repositioning, since it documents a working in-house bar distributed as Claude Code
-skills with no MCP server at all.
+**`before.md` (4.9 K) and `gemini.md` (37 K)** — working notes, not project files. There is also an
+internal baseline document (untracked, not part of this repo) which is worth keeping but is out of
+scope for this pass.
 
 **`SPEC.md`** — the original v0 spec. Substantially unbuilt: §2.1 pre-flight token/burn-rate estimator
 (not started), §2.2 AC-stripping and diff-only payloads (not started), §2.4 cheap-model CCI synthesis
@@ -760,12 +757,11 @@ The three things worth doing before any repositioning writeup, in order:
    frames "we found and corrected our own overclaim" as the credibility play; that play is still
    available, and it is stronger the second time.
 
-One closing note on the strategy itself. `docs.md` records that the in-house OK-AI-Agent ships as
-Claude Code skills and hooks with **no MCP server** and zero install friction. Given that the surviving
-value here is Context Packs — reading and writing markdown files in the repo — it is worth asking
-whether that needs an MCP server, three vendored binaries and a 1.5 GB checkout at all, or whether it
-is a skill plus a convention. That question is outside this pass's scope, but the evidence in §2 and
-§7 points at it hard enough to be worth stating.
+One closing note on the strategy itself. Given that the surviving value here is Context Packs —
+reading and writing markdown files in the repo — it is worth asking whether that needs an MCP server,
+three vendored binaries and a 1.5 GB checkout at all, or whether it is a skill plus a convention.
+That question is outside this pass's scope, but the evidence in §2 and §7 points at it hard enough to
+be worth stating.
 
 ---
 
