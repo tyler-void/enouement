@@ -1,21 +1,43 @@
-# Eco-MCP
+# enouement
 
-**Project memory for AI coding agents, over MCP.** Two tools: the agent reads a module's
-**Context Pack** before it works, and writes back what it learned when it's done. The knowledge
-lands in your repo, next to the code, and goes through code review like everything else.
+**Repo-native, PR-reviewed project knowledge for spec-driven, agent-assisted development.** The
+reasoning behind a change lives in the repository next to the code it explains, arrives through
+ordinary code review, and is still there — and still findable — a year later.
 
-## Scope (narrowed 2026-09-21)
+## Status: pre-alpha. Nothing is installable yet.
 
-This started as a token-thrifty *gateway* wrapping retrieval backends. That premise expired:
-codebase-memory-mcp, semble and rtk each ship their own MCP server, skills and hooks now, so
-wrapping them added nothing, and Claude Code loads nested `CLAUDE.md`/`AGENTS.md` on demand,
-which covers the read side of project memory.
+Read this before trying to use it:
 
-What is still unsolved is the **write** side — nobody writes the knowledge back — so that is the
-whole product. `search_structure`, `retrieve` and `repo_map` were removed; the retrieval research
-continues in [`bench/`](bench/README.md), as measurement, not as shipped tools.
+- **Spec 001 (continuous project knowledge) is in progress**, on the
+  [`001-continuous-project-knowledge`](https://github.com/tyler-void/enouement/tree/001-continuous-project-knowledge)
+  branch. Specification, plan, contracts and research are written; **no implementation has
+  started**.
+- **What is on `main` today** is the earlier work: a small MCP server with two tools
+  (`get_context`, `update_context`) and the benchmark harness in `bench/`. It runs, and it is not
+  what the name above describes yet.
+- **Code identifiers still say `eco-mcp`** — the package name, the binary, the `ECO_*`
+  environment variables, the log prefix. The name is settled; the in-repo rename is deliberately
+  deferred and tracked in the spec-002 issue, so that one change is reviewed on its own rather
+  than smeared across a feature branch.
+- Nothing is published to npm. The names `enouement` and `enou` were unclaimed on 2026-09-21 and
+  have **not** been reserved with a placeholder package.
 
-## What it gives the agent
+## About the name
+
+*Enouement* is one of John Koenig's coinages from
+[The Dictionary of Obscure Sorrows](https://www.thedictionaryofobscuresorrows.com/word/enouement).
+It names a particular ache: you finally reach the future and find out how things turned out — and
+there is no way to carry that back to the version of you who needed it, who is still standing in
+the past, still guessing.
+
+This tool is an attempt to run the feeling backwards. It cannot send anything to your past self.
+What it can do is make your past self leave the notes — recorded while the reasons were still
+fresh, committed beside the code, waiting for whoever arrives next. Usually that is you.
+
+## What is on `main` today
+
+The MCP server described below is the earlier work, not the tool the name promises. It
+works; it is narrower than what spec 001 specifies.
 
 | Tool | What it does | Why it's cheap |
 |------|-------------|----------------|
@@ -38,8 +60,8 @@ retrieval experiments. The server never calls it.)
 
 ## Install
 ```bash
-git clone https://github.com/tyler-void/eco-mcp
-cd eco-mcp && bun install
+git clone https://github.com/tyler-void/enouement
+cd enouement && bun install
 bun run test:client          # smoke test: spawns the server, lists + calls both tools
 ```
 
@@ -77,12 +99,18 @@ scope change. Details for all of it:
 [docs/research/discovery-2026-07-28.md](docs/research/discovery-2026-07-28.md).
 
 ## Repo layout
-- `src/` — the MCP server (this product)
+- `src/` — the MCP server that exists today
 - `bench/` — the accuracy-audited benchmark harness + retrieval experiments
 - `docs/` — vision, research, infra, demo plan ([start here](docs/README.md))
 
-## Status
-The two CCI tools are installable and covered by `bun run test:client`. Next, per
-[docs/vision/vision.md](docs/vision/vision.md): make the write side automatic (a Stop hook and a
-skill) rather than something the agent has to remember to call. Superseded and not being built:
-the cache-aware egress meter and model routing from the gateway era.
+## What comes next
+
+Spec 001 replaces the two tools above with something that records *why*, not just *what*:
+immutable knowledge records in the repository, a `why` command that answers from paths, git
+trailers and rename history, and enforcement that runs in both a local git hook and CI. The
+specification, plan and contracts are on the
+[`001-continuous-project-knowledge`](https://github.com/tyler-void/enouement/tree/001-continuous-project-knowledge)
+branch; implementation has not started.
+
+Superseded and not being built: the cache-aware egress meter and model routing from the gateway
+era.
