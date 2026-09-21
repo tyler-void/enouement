@@ -9,7 +9,7 @@
     "report": "bun run src/report/waterfall.ts",
     "smoke": "bun run src/smoke.ts",
     "jev": "bun run src/jev-rerank.ts",
-    "test": "bun test ./test/rerank.test.ts ./test/semantic.test.ts"
+    "test": "bun test ./test/rerank.test.ts ./test/semantic.test.ts ./test/backends.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
