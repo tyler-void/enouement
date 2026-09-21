@@ -19,6 +19,17 @@ await client.connect(transport);
 const { tools } = await client.listTools();
 console.log("TOOLS:", tools.map((t) => t.name).join(", "));
 
+// The tool list is the routing surface — assert it exactly, so a tool removed for returning
+// wrong answers cannot silently come back. find_concept/run_command removed 2026-07-28
+// (docs/research/discovery-2026-07-28.md §6.1, §6.2).
+const EXPECTED = ["get_context", "repo_map", "retrieve", "search_structure", "update_context"];
+const actual = tools.map((t) => t.name).sort();
+if (actual.length !== EXPECTED.length || EXPECTED.some((n, i) => actual[i] !== n)) {
+  console.error(`\nTOOL LIST MISMATCH\n  expected: ${EXPECTED.join(", ")}\n  actual:   ${actual.join(", ")}`);
+  process.exit(1);
+}
+console.log(`tool list OK — exactly ${EXPECTED.length} tools`);
+
 const call = async (name: string, args: Record<string, unknown>) => {
   const r: any = await client.callTool({ name, arguments: args });
   const text = (r.content ?? []).map((c: any) => c.text).join("\n");
@@ -26,8 +37,7 @@ const call = async (name: string, args: Record<string, unknown>) => {
 };
 
 await call("search_structure", { name_pattern: "^cors$" });
-await call("find_concept", { query: "verify a JSON web token" });
-await call("run_command", { command: "echo INFO starting && echo 'FAIL: boom' && echo done", cwd: HONO });
+await call("retrieve", { query: "verify a JSON web token", k: 2 });
 await call("repo_map", { limit: 12 });
 await call("get_context", { path: "src/middleware/cors" });
 

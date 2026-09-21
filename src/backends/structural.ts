@@ -62,7 +62,17 @@ export class Structural {
     }));
   }
 
-  /** Semantic vector search over the graph (codebase-memory has nomic-embed baked in). */
+  /**
+   * DELIBERATELY UNWIRED (2026-07-28) — no caller. Do not re-adopt without verifying the
+   * backend first. Its only caller was the `find_concept` tool, removed because
+   * codebase-memory-mcp 0.7.0 silently ignores the `semantic_query` key below: it returns the
+   * ENTIRE symbol table (measured: total=3529 on hono, identical for a JWT query and a nonsense
+   * one), so this method just returns the first 8 rows of an unfiltered dump. The response is
+   * well-formed JSON, so the try/catch in cli() reports success.
+   * See docs/research/discovery-2026-07-28.md §6.1.
+   *
+   * Semantic vector search over the graph (codebase-memory has nomic-embed baked in).
+   */
   semantic(workdir: string, query: string, k = 8): string {
     const project = this.project(workdir);
     if (!project) return "structural index unavailable";

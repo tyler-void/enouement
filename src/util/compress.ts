@@ -1,3 +1,11 @@
+// DELIBERATELY UNWIRED (2026-07-28) — nothing imports this. Do not re-adopt as-is.
+// Its only caller was the `run_command` tool, removed because this compressor silently
+// destroys output: `looksLikeTests` below matches the bare substring "test" anywhere in the
+// output (so "latest" matches too), and when the KEEP filter then matches nothing it
+// substitutes the literal string "all checks passed (no failures)". Measured: `cat
+// package.json` returned that string with exit 0, 484 chars of real output discarded.
+// See docs/research/discovery-2026-07-28.md §6.2. Kept for reference only.
+//
 // Output compression — failures-only for test/build logs, with a hard size cap.
 // Lossless of the diagnostic lines (keeps Expected/Received/stack), drops the noise.
 
