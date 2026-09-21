@@ -7,7 +7,7 @@
   "scripts": {
     "start": "bun run src/server.ts",
     "test:client": "bun run test/client.ts",
-    "test": "bun test ./test/semantic.test.ts ./test/rerank.test.ts"
+    "test": "bun run test:client"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",

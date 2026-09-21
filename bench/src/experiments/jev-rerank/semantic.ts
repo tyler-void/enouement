@@ -2,7 +2,7 @@
 // is NOT a token win, so we keep k small and trim each chunk. Use for fuzzy/conceptual queries
 // where there's no literal keyword; prefer the structural backend for "where is X defined".
 
-import { resolveBin, repoFallbacks } from "../util/bin";
+import { resolveBin, repoFallbacks } from "./bin";
 
 export interface Chunk {
   location: string;

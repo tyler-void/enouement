@@ -88,6 +88,41 @@ The run header prints which backends are active (`semantic=semble structural=cod
 
 Outputs land in `results/`: `results-<ts>.json` (raw) and `report-<ts>.md` (the ROI report).
 
+## Experiment: Jev relevance filter (adaptive k)
+
+**Question.** The microbench found fixed top-k semantic chunks cost ~4× a scoped grep: you pay
+for k chunks whether or not they help. Does an *adaptive* k — fetch a pool, keep only the chunks
+a judge calls relevant — beat a fixed k on tokens **and** hit rate?
+
+**Method.** Over-fetch a pool (default 12) from semble, ask [TypeSafe Jev](https://docs.typesafe.ai)
+one yes/no noul per chunk (*"must a developer read this to answer the query?"*), keep chunks with
+p ≥ threshold, cap at k. Baselines are semble top-k for k ∈ {1,3,5}; a run is a *hit* when the
+target file is among the injected chunks. On any Jev failure the arm falls back to the plain
+top-k, labelled `UNRANKED` — scores are never invented for missing answers.
+
+```bash
+bun run jev                             # baselines only, no key needed
+TYPESAFE_API_KEY=… bun run jev            # + the jev arm
+ECO_JEV_MODE=pair ECO_JEV_POOL=20 TYPESAFE_API_KEY=… bun run jev
+```
+
+| Env | Default | |
+|---|---|---|
+| `ECO_JEV_POOL` | `12` | chunks fetched from semble before filtering |
+| `ECO_JEV_THRESHOLD` | `0.5` | min P(relevant) to keep |
+| `ECO_JEV_MODE` | `shared` | `shared` = 1 request with all chunks; `pair` = 1 request per chunk (no distractors) |
+| `ECO_JEV_MODEL` | `jev-1.13.0` | pinned — `jev-latest` moves |
+| `ECO_JEV_URL` / `ECO_JEV_TIMEOUT_MS` | TypeSafe API / `3000` | |
+
+⚠️ **This sends the query and code chunks to a hosted API** (closed weights, US). The harness
+points at the `hono` fixture — public OSS — on purpose. Never point it at private code.
+
+**Status: unmeasured against the live API** (needs a key), so no result is claimed. Code lives in
+`src/experiments/jev-rerank/` (`jev.ts` = System One client behind a `Decider` seam, `rerank.ts` =
+the shared/pair filter logic); offline tests in `test/`. This briefly shipped behind the product's
+`retrieve` tool; that tool was removed on 2026-09-21 when the scope narrowed to project memory,
+and the experiment stayed here.
+
 ## Status / honest limitations
 - Real backends (semble + codebase-memory) are wired; keyword fallback only if binaries absent.
 - Caching: accurate on Anthropic (`cache_creation`/`cache_read`). On Gemini/OpenAI it reads
