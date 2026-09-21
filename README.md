@@ -17,8 +17,9 @@ Read this before trying to use it:
   what the name above describes yet.
 - **Code identifiers still say `eco-mcp`** — the package name, the binary, the `ECO_*`
   environment variables, the log prefix. The name is settled; the in-repo rename is deliberately
-  deferred and tracked in the spec-002 issue, so that one change is reviewed on its own rather
-  than smeared across a feature branch.
+  deferred and tracked in
+  [#2 — Spec 002: in-repo rename + distribution](https://github.com/tyler-void/enouement/issues/2),
+  so that one change is reviewed on its own rather than smeared across a feature branch.
 - Nothing is published to npm. The names `enouement` and `enou` were unclaimed on 2026-09-21 and
   have **not** been reserved with a placeholder package.
 
