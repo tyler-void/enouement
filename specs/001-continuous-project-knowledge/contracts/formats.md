@@ -55,7 +55,7 @@ names this one (data-model §2.2). A stored status could go stale; a computed on
 
 **Hand-editable by contract.** This file will be edited by hand, by merge resolution, and by other
 tools. That is why the un-covered-records report (FR-039) is produced by `lint` on the diff rather
-than only by `<cli> modules remove` — a check that only fires inside a command is a check that
+than only by `enou modules remove` — a check that only fires inside a command is a check that
 does not fire.
 
 ## 3. Git trailers

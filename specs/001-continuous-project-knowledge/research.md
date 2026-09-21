@@ -214,19 +214,45 @@ credential, the false positive is cheap and recoverable.
 path in, it does not close the class — which is exactly why FR-033's redaction exists downstream
 and why redaction output insists the credential still be rotated.
 
-## 7. Store location and naming — **decision**
+## 7. Naming and store location — **decided 2026-09-21**
 
-**Decision**: `.knowledge/` for the store; no global binary name claimed in v1; commands run as
-`bun run knowledge <cmd>`.
+**Decision**: project and package **`enouement`**; CLI binary **`enou`**; spec-kit extension id
+**`enouement`**; knowledge store stays at **`.knowledge/`**.
 
-**Rationale**: the project's name is unsettled — the GitHub repository was renamed to `cairn` on
-2026-09-21, then the name was found to be heavily contested. **Verified while reviewing prior art
-(§1): npm returns 123 packages matching `cairn`, at least six of them unrelated AI-agent
-context/memory tools** (`@isaacriehm/cairn`, `@eventually-consistent/cairn`, `@principled/cairn`,
-`@pairtrace/cairn`, `cairn-memory`, and others), and all three prior-art projects reviewed in §1
-are themselves called some form of "cairn". The in-repo rename is deferred to its own spec. A store directory is expensive to rename once real records reference it and once other
-repositories have adopted the convention, so it should not encode a name that may not survive.
-`.knowledge/` describes what it holds and survives any rename.
+| Candidate | Verdict |
+|---|---|
+| `eco-mcp` | **rejected** — the product is no longer an MCP server; the name describes what it stopped being |
+| `cairn` | **rejected** — heavily contested: 123 npm packages match `cairn`, at least six of them unrelated AI-agent context/memory tools, and **all three prior-art projects reviewed in §1 are themselves called some form of "cairn"** |
+| `eco-harness` | **rejected** by the owner |
+| **`enouement`** | **chosen** — an obscure coinage, unclaimed on npm on 2026-09-21 |
+
+**Binary `enou`**: `eno`, `enm`, `enow` and `nou` are all taken on npm, so the short forms were
+not available. `enou` was.
+
+**Both names must be re-checked immediately before the first publish**, and a placeholder MUST
+NOT be published to reserve them — squatting a name to hold it is the kind of thing this project
+would have to explain later.
+
+**Scope of the rename** — split by surface, not frozen:
+
+- **New surface from this spec uses the final names immediately**: CLI `enou <cmd>`, new
+  environment variables `ENOU_*`, new log prefix `[enou]`, extension id `enouement`.
+- **Legacy identifiers wait for spec 002**: `package.json` name and the `eco-mcp` bin, `ECO_*`
+  variables in `bench/`, the MCP server name, the `[eco-mcp]` prefix, and existing prose.
+- **`.knowledge/` stays.** It was deliberately named for what it holds rather than for the
+  project, and it has now survived two renames without a migration.
+
+**Extension id — collision check (read-only, run 2026-09-21)**: `specify extension search
+knowledge` returned **7 keyword matches** (Dotdog, SpecKit Grill Me, Learning Extension, OKF
+Knowledge Bundle Generator, Onboard, LLM Wiki, Work IQ) — **none named `knowledge`**. But the
+command surfaces display names, not ids, and offers no `--json`, so the id itself could not be
+proven free. Inconclusive, so the id is **`enouement`**, which returns no matches at all.
+
+**Dogfooding locally — verified, not assumed**: `bun link` symlinks a `package.json` `bin` entry
+into `~/.bun/bin/` (already on PATH) and executes a TypeScript entry point directly via its
+shebang. So this repo gains an `enou` bin entry **alongside** the legacy `eco-mcp` one, and a
+single `bun link` puts `enou` on PATH. `bun run knowledge` is this repo's **dev alias only** — it
+does not resolve anywhere else, so nothing that runs in a consumer repo may use it.
 
 ## 8. Index — **decision, with a measured trigger**
 

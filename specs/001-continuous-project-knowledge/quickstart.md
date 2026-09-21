@@ -1,8 +1,9 @@
 # Quickstart: Continuous Project Knowledge
 
-**Phase 1 output.** What using this looks like once the MVP (User Stories 1+2) ships. Commands run
-as `bun run knowledge <cmd>` in v1 — no global binary is claimed while the project name is
-unsettled (research.md §7).
+**Phase 1 output.** What using this looks like once the MVP (User Stories 1+2) ships. The binary
+is `enou` (package `enouement` — naming settled 2026-09-21, research.md §7). Everything below runs
+in a **consumer** repository, so it calls the real binary; `bun run knowledge` is a dev alias that
+works only inside this repository.
 
 ## Install into a repository
 
@@ -21,13 +22,13 @@ git config core.hooksPath .githooks     # local: catches work that never opens a
 # CI: .github/workflows/knowledge.yml runs the identical `lint`
 
 # 3. check what is not covered, on purpose or otherwise
-bun run knowledge modules uncovered
+enou modules uncovered
 ```
 
 ## Record something
 
 ```bash
-bun run knowledge record \
+enou record \
   --kind decision \
   --summary "retrieval tools removed; the wrapped tools ship their own MCP servers now" \
   --paths src/server.ts,src/backends/ \
@@ -46,7 +47,7 @@ tripped it.
 ## Ask why
 
 ```bash
-$ bun run knowledge why src/server.ts
+$ enou why src/server.ts
 
 src/server.ts — 3 records
 
@@ -74,7 +75,7 @@ A PR touching `src/knowledge/` with no record and no trailer:
 
 ```
 knowledge: src/knowledge changed with no knowledge recorded
-  → add a record:  bun run knowledge record --paths src/knowledge/...
+  → add a record:  enou record --paths src/knowledge/...
   → or say it taught nothing, in the commit message:
         Knowledge-None: routine dependency bump
 ```

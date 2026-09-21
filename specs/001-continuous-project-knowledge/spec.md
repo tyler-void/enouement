@@ -455,6 +455,11 @@ flag appears. Push the missing knowledge; confirm it clears.
 - **FR-022**: Every capture and retrieval path MUST remain available as an explicit command when
   the agent in use provides no automatic triggers, and the pull-request flags MUST be produced by
   continuous integration in that case.
+- **FR-042**: When the tool is not installed, or the repository has no knowledge store, every
+  agent hook and every local git hook MUST exit successfully and produce **no output**. A
+  contributor who has not installed the tool MUST never be blocked, warned, or shown an error by
+  it. Continuous integration is the enforcement point — it is the one place where the tool is
+  known to be present.
 - **FR-023**: System MUST coexist with spec-kit's managed context-file block and with the git
   extension's auto-commit hooks, without corrupting either or being corrupted by them.
 - **FR-024**: Modules MUST be explicitly declared in a single list in the repository. A path

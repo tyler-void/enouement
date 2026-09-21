@@ -80,6 +80,9 @@ because something would otherwise fail silently:
 | 8 | Ordering within a supersession chain follows the `supersedes` graph, verified with IDs deliberately minted out of clock order | the monotonic ULID orders within one process only; skewed clocks across machines would otherwise reorder history |
 | 9 | `SessionEnd` and `PreCompact` firing for one session capture at most once | prior art hit this with a single guard and still double-wrote (research.md §1) |
 | 10 | `after_implement` capture runs before the git extension's auto-commit | inverted, every `Knowledge-Record:` trailer points one commit late — a silent corruption |
+| 11 | With `enou` absent from `PATH`, and separately with no `.knowledge/` present, every agent hook and the git hook exits 0 and writes nothing to stdout or stderr | FR-042. A teammate who never installed the tool must not be blocked or warned, or the team deletes the hooks |
+| 12 | The suppressed `PostToolUse(Read)` path reads no record file, and stays under its p95 budget | it runs on every read; reaching the scan before discovering there is nothing to inject would put the injecting cost on every read |
+| 13 | No file outside `src/knowledge/platform.ts` references a `Bun.*` global | enforced by a test, not by review — the seam is worthless the first time it is quietly bypassed |
 
 **No violations. Complexity Tracking is empty and the section is omitted.**
 
@@ -137,6 +140,7 @@ specs/001-continuous-project-knowledge/
 src/
 ├── server.ts                  # existing MCP server; gains knowledge tools in a later increment
 ├── knowledge/                 # the core library — no I/O policy, no agent assumptions
+│   ├── platform.ts            # THE ONLY file allowed to touch Bun.* globals — the spec-002 seam
 │   ├── id.ts                  # ULID: time-sortable + collision-free (FR-029)
 │   ├── record.ts              # parse/serialise one record; front-matter contract
 │   ├── store.ts               # flat store: list, read, append. Never mutates (FR-007)
@@ -166,6 +170,22 @@ test/
 └── fixtures/                  # seeded secret shapes, synthetic corpora
 ```
 
+**Platform seam (binding)**: Bun-specific APIs — `Bun.YAML`, `Bun.Glob`, `Bun.$`, `Bun.file` and
+anything else on the `Bun` global — may be used **only inside `src/knowledge/platform.ts`**.
+Everything else imports from there.
+
+Spec 002 has to choose between shipping a Bun-compiled binary and a Node-compatible bundle, and
+that choice is not free: measured hello-world compile sizes on Bun 1.3.13 are **97.1 MB**
+(linux-x64), **96.7 MB** (linux-arm64), **60.2 MB** (darwin-arm64) and **112.2 MB**
+(windows-x64). Asking a consumer repository's CI to pull ~100 MB on every run is a real cost, so
+the Node-compatible option must stay open. Adding the seam now costs one file; retrofitting it
+after the Bun globals have spread through the codebase does not.
+
+One consequence to carry into spec 002: **swapping the YAML parser means re-running the SHA
+fixtures** — both all-digit (`0123456`) and exponent form (`6e40653`) — against the new parser.
+Those hazards are properties of a specific parser, not of YAML, and a Node-side parser will have
+its own set.
+
 **Structure Decision**: One core library under `src/knowledge/` with five thin surfaces over it
 (CLI, git hook, CI, spec-kit extension, MCP server). The library holds every rule; a surface only
 translates. This is what makes FR-022 cheap — the CLI is not a fallback bolted on afterwards, it
@@ -194,3 +214,11 @@ cannot be repaired afterwards.
 3. **MVP order**: foundation → **US1** (record, secret scan, spec-kit `after_implement` capture)
    → **US2** (`why`). MVP checkpoint here. **US3** (views), **US4** (capture outside spec-kit) and
    **US5** (PR flags) are separate phases after that checkpoint, each independently shippable.
+4. **The first dogfood record is the naming decision** — and it is written **after** the
+   foundation lands, never before. Constraint 1 forbids any record existing before the canonical
+   writer does, and this one is no exception just because it is ours.
+   - `kind: decision`, `provenance: backfilled` — it documents a choice already made, written up
+     after the fact, so calling it `contemporaneous` would misreport what it measures (FR-036a).
+   - `source`: the commit that added research.md §7.
+   - Its content is §7: `enouement` chosen, `eco-mcp` / `cairn` / `eco-harness` rejected with
+     reasons, binary `enou` because the shorter forms were taken.

@@ -30,13 +30,20 @@ policy difference — which is the point of having one `lint`.
 
 ## 2. Capture: spec-kit extension
 
-A `knowledge` extension registered in `.specify/extensions.yml`:
+A spec-kit extension registered in `.specify/extensions.yml`. **Extension id: `enouement`.**
+
+`specify extension search knowledge` (2026-09-21) returned 7 keyword matches — Dotdog, SpecKit
+Grill Me, Learning Extension, OKF Knowledge Bundle Generator, Onboard, LLM Wiki, Work IQ — and
+none is *named* `knowledge`. But the command prints display names rather than ids and has no
+`--json`, so the id could not be shown to be free. Inconclusive is treated as taken: the id is
+`enouement`, which the catalog returns nothing for. A generic id in a catalog already full of
+knowledge-themed extensions is a poor bet even when it happens to be unclaimed.
 
 | Spec-kit hook | Command | Purpose |
 |---|---|---|
-| `before_specify` | `<cli> why --paths <feature paths> --json` | surfaces existing records for the paths a feature will touch, before its spec is written (FR-011) |
+| `before_specify` | `enou why --paths <feature paths> --json` | surfaces existing records for the paths a feature will touch, before its spec is written (FR-011) |
 | `before_plan` | same | the same records, at planning time |
-| `after_implement` | `<cli> record …` | captures what the feature decided (FR-003) |
+| `after_implement` | `enou record …` | captures what the feature decided (FR-003) |
 
 **Ordering is load-bearing.** `after_implement` capture MUST run **before** the git extension's
 `speckit.git.commit`, so the records land in the same commit as the work they describe rather than
@@ -50,7 +57,7 @@ needs a test, not a comment.
 | Agent | Mechanism |
 |---|---|
 | Claude Code | `PostToolUse(Read)` hook emits the bounded view as `additionalContext`, **once per module per session** |
-| Every other agent | `<cli> view <module>` |
+| Every other agent | `enou view <module>` |
 
 The hook resolves the read file to a declared module, and suppresses if that module was already
 injected this session — deduplication state is per-session and in-memory, never a file in the
@@ -77,12 +84,46 @@ Two constraints taken from prior art (research.md §1), both learned from projec
   non-blocking lock, **and** an idempotency check on the write itself. A project that used one
   guard still got duplicate entries.
 
-## 5. Failure behaviour
+## 5. Degradation for people who have not installed it (FR-042)
 
-Every hook fails **open with a message**, never silently:
+A repository using this tool will have contributors who have not installed it, and clones that
+predate it. For them **every hook is a no-op**: if `enou` is not on `PATH`, or the repository has
+no `.knowledge/`, each agent hook and each local git hook **exits 0 and prints nothing**.
 
-- CLI missing or errored → the hook prints why and exits 0, except `lint`, which is the enforcing
-  path and must exit non-zero when it cannot run. A lint that silently passes when broken is worse
-  than no lint (Principle II).
+Not a warning, not a hint. A teammate who never opted in must not be blocked from committing, and
+must not see a message about a tool they did not install — that is how a team decides to delete
+the hooks. **CI is the enforcement point**, because it is the one environment where the tool is
+known to be present and pinned.
+
+This does not weaken enforcement, it relocates it. The local hook exists to catch work that never
+opens a pull request (§1); it cannot also be the guarantee, because it is absent exactly when
+someone has not installed the tool.
+
+One exception: when `enou` **is** installed and `lint` fails to run, the git hook exits non-zero.
+A lint that silently passes when broken is worse than no lint (Principle II). "Not installed" and
+"installed but broken" are different states and are treated differently.
+
+## 6. Latency budget for `PostToolUse(Read)`
+
+This hook fires on **every file read**, so its cost is paid constantly while its benefit is paid
+once per module per session. Two budgets, because the two paths are not alike:
+
+| Path | Frequency | Budget |
+|---|---|---|
+| **Suppressed** — no `.knowledge/`, path in no declared module, or this module already injected this session | almost every read | **p95 < 20 ms**, and it must not read a single record file |
+| **Injecting** — first read of a declared module with records | once per module per session | **p95 < 200 ms**, the same budget as `why` |
+
+The suppressed budget is the binding constraint, and it dictates the order of checks: test for
+`.knowledge/`, then module membership, then the per-session dedup, and only then touch records.
+Scanning the store before discovering there is nothing to inject would put the injecting cost on
+every read in the repository.
+
+Measured input: a full record scan costs 153 ms at 10 000 records (research.md §3), which is why
+the injecting path gets 200 ms and why the suppressed path must never reach that code.
+
+## 7. Failure behaviour
+
 - View delivery failing must never block a read. Knowledge is an aid on that path; blocking work
   to deliver it inverts the point.
+- Any hook that errors while the tool **is** installed reports why on stderr, except where §5
+  requires silence.

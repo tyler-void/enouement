@@ -5,10 +5,11 @@ every other surface calls. The git hook, the CI job, the spec-kit extension and 
 shell into these commands, which is what makes FR-022 true by construction rather than by
 discipline.
 
-> **Binary name is deferred.** The repo's existing bin is `eco-mcp`, and the project name is
-> unsettled (research.md §7). v1 ships these as `bun run knowledge <command>` via a package.json
-> script — no global binary, no name to claim, nothing to rename later. `<cli>` below stands for
-> that invocation.
+> **The binary is `enou`.** Naming settled 2026-09-21 (research.md §7): package `enouement`,
+> binary `enou`. Every invocation below is what a **consumer repo** runs, so it must be the real
+> binary — `bun run knowledge` resolves only inside this repository and would break everywhere
+> else. This repo keeps `bun run knowledge` as a dev alias and gains an `enou` bin entry alongside
+> the legacy `eco-mcp` one; `bun link` then puts `enou` on PATH (verified, research.md §7).
 
 ## Exit codes
 
@@ -23,12 +24,12 @@ from "your change has an unrecorded module", and only the second should block a 
 
 ## Commands
 
-### `<cli> record`
+### `enou record`
 
 Creates a knowledge record. Refuses rather than repairs.
 
 ```
-<cli> record --kind <decision|invariant|gotcha|convention>
+enou record --kind <decision|invariant|gotcha|convention>
              --summary <one line>
              --paths <path>[,<path>...]
              [--body <text> | --body-file <path> | -]   # '-' reads stdin
@@ -45,12 +46,12 @@ without `--rejected`; `--supersedes` naming an unknown record; missing `--source
 **any secret-pattern match**, which reports which pattern matched and in which field. A refusal
 must never write a partial record.
 
-### `<cli> why <path-or-symbol>`
+### `enou why <path-or-symbol>`
 
 The deterministic answer. Never guesses, never synthesises.
 
 ```
-<cli> why src/util/context.ts [--json] [--include-superseded]
+enou why src/util/context.ts [--json] [--include-superseded]
 ```
 
 Assembles, in this order: records whose `paths` match; records reachable through git rename
@@ -68,20 +69,20 @@ record that fails to parse is **reported as an error in the output**, never sile
 answer that looks complete while missing a record is the confident-wrong-answer failure Principle
 II prohibits.
 
-### `<cli> view <module>` · `<cli> log <module>`
+### `enou view <module>` · `enou log <module>`
 
 `view` renders the bounded projection: top N by kind priority then ULID descending, grouped by
 kind, with an overflow line naming the `log` command. `log` renders the unbounded form with
 superseded records marked. **Neither writes a file** (FR-040).
 
-### `<cli> redact <ULID> --reason <text> --fields <f>[,<f>...]`
+### `enou redact <ULID> --reason <text> --fields <f>[,<f>...]`
 
 The one permitted mutation. Records `{date, reason, fields}` into the record, replaces the named
 fields, and prints that the original content still exists in git history — and, when a redacted
 field matched a credential pattern, that the credential must be rotated. Never automatic
 (FR-033).
 
-### `<cli> lint [--staged | --range <a>..<b>] [--json]`
+### `enou lint [--staged | --range <a>..<b>] [--json]`
 
 The whole of enforcement, in one command, so the local hook and CI cannot drift apart. Reports:
 
@@ -99,12 +100,12 @@ Exit 2 on findings. `--json` for CI annotation. In CI, trailers are read from **
 own commits**, not only from the merged commit — a squash merge can drop a `Knowledge-None:`
 trailer out of the merged trailer block (contracts/formats.md §3).
 
-### `<cli> modules [add|remove|list|uncovered]`
+### `enou modules [add|remove|list|uncovered]`
 
 `uncovered` answers FR-026 — which tracked paths belong to no declared module. Coverage is
 deliberate, so this is how it stays honest rather than silently forgotten.
 
-### `<cli> recall <query>` — v1 stub
+### `enou recall <query>` — v1 stub
 
 **Exits 1 with "not implemented".** It must not return degraded BM25 results: under Principle II
 a confident wrong answer is worse than no answer, and a half-tuned ranker silently returning
