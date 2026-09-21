@@ -15,3 +15,6 @@ node_modules/
 # internal brainstorm — company/contest names + strategy, keep local only
 gemini.md
 before.md
+
+# spec-kit extension catalog cache — refetched on demand, not ours to version
+.specify/extensions/.cache/
