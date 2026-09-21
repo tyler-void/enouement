@@ -69,7 +69,7 @@ Adjacent (technique, not necessarily vendored):
 
 ## Next actions
 
-1. Validate the picks with a real benchmark on the a private mirror run: old-flow vs gateway-flow
+1. Validate the picks with a real benchmark on a private mirror run: old-flow vs gateway-flow
    token + cost delta on one task (methodology, not a single number — 30× per-run variance).
 2. Stand up the cache-aware egress layer first (SPARK 0 — biggest immediate win) — see
    [../research/new-sparks-2026.md](../research/new-sparks-2026.md).

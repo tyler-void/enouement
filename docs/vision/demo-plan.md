@@ -45,7 +45,7 @@ can't look like a win.
    near-zero token cost."
 
 ## Decisions locked (2026-06-09)
-- Benchmark target: **public OSS repo** (safe/shareable); a private mirror run as a private confirmation run.
+- Benchmark target: **public OSS repo** (safe/shareable); a private mirror run as confirmation.
 - Agent substrate: **custom minimal agent loop** for rigorous numbers; record a real-tool
   (Cursor/Copilot) side-by-side separately for Act 2 theater.
 

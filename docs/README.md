@@ -8,7 +8,7 @@ in the repo and reviewed in the PR.
 > (retrieval + compression + routing). Those docs are kept as a record and banner-marked where
 > they describe it. The current scope is in [vision/vision.md](vision/vision.md).
 
-> **Project context:** built as a submission for **the competition** (Round 1).
+> **Project context:** built as a **competition submission** (Round 1).
 > The catalyst is GitHub Copilot's move to usage-based billing on **2026-06-01** (see
 > [research/copilot-pricing-shock.md](research/copilot-pricing-shock.md)).
 
