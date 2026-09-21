@@ -57,6 +57,13 @@ needs a test, not a comment.
 | Agent | Mechanism |
 |---|---|
 | Claude Code | `PostToolUse(Read)` hook emits the bounded view as `additionalContext`, **once per module per session** |
+
+⚠️ **Unverified assumption — confirm before building US3.** The documentation explicitly describes
+`hookSpecificOutput.additionalContext` for **`UserPromptSubmit`** hooks. It was not confirmed that
+`PostToolUse` supports the same field. If it does not, the delivery mechanism for US3 has to
+change — most likely to `UserPromptSubmit` with the module inferred from the prompt or the
+session's recent reads, which is a materially different design with a different dedup story. This
+is a US3 blocker, not an MVP one: US1 and US2 do not depend on it.
 | Every other agent | `enou view <module>` |
 
 The hook resolves the read file to a declared module, and suppresses if that module was already
@@ -106,20 +113,90 @@ A lint that silently passes when broken is worse than no lint (Principle II). "N
 ## 6. Latency budget for `PostToolUse(Read)`
 
 This hook fires on **every file read**, so its cost is paid constantly while its benefit is paid
-once per module per session. Two budgets, because the two paths are not alike:
+once per module per session.
 
-| Path | Frequency | Budget |
+**An absolute 20 ms budget for the whole suppressed path is not achievable, and was wrong.**
+Process startup alone eats it. Measured p95 for a program that does nothing at all:
+
+| | this machine (200 runs) | 2-vCPU cloud sandbox (200 runs) |
 |---|---|---|
-| **Suppressed** — no `.knowledge/`, path in no declared module, or this module already injected this session | almost every read | **p95 < 20 ms**, and it must not read a single record file |
-| **Injecting** — first read of a declared module with records | once per module per session | **p95 < 200 ms**, the same budget as `why` |
+| `sh -c 'exit 0'` | **1.5 ms** | **1.5 ms** |
+| `bun -e 0` | 8.0 ms | — |
+| bun, compiled binary | — | 22.5 ms |
+| bun, `run` a `.ts` | — | 25.1 ms |
+| `node -e 0` | 22.4 ms (v26.8.2) | — |
+| node 22, `.cjs` | — | 29.6 ms |
 
-The suppressed budget is the binding constraint, and it dictates the order of checks: test for
-`.knowledge/`, then module membership, then the per-session dedup, and only then touch records.
-Scanning the store before discovering there is nothing to inject would put the injecting cost on
-every read in the repository.
+A 2-vCPU runner is the size a consumer repository's CI is likely to be, and there any runtime
+exceeds 20 ms before executing a line of our code. A test asserting 20 ms would pass on a
+developer laptop and flake in CI — and faster hardware would only hide the problem rather than
+fix it.
 
-Measured input: a full record scan costs 153 ms at 10 000 records (research.md §3), which is why
-the injecting path gets 200 ms and why the suppressed path must never reach that code.
+So the suppressed path is split in two, and only the first tier runs on every read.
+
+### Tier 1 — POSIX-sh pre-filter, before any runtime starts
+
+The hook `command` is shell, so it can decide not to start a runtime at all:
+
+```sh
+[ -d "$CLAUDE_PROJECT_DIR/.knowledge" ] || exit 0
+command -v enou >/dev/null 2>&1 || exit 0
+exec enou hook post-read "$@"
+```
+
+**Budget: p95 < 5 ms, absolute.** Measured at **1.5 ms p95** here — indistinguishable from a bare
+`sh -c 'exit 0'`, because that is essentially what it is on the common path.
+
+This is also what makes **FR-042 cheap by construction** rather than a behaviour to implement and
+test in application code: in a repository with no `.knowledge/`, or for a contributor who never
+installed `enou`, the hook costs one `sh` and produces nothing. There is no code path to get
+wrong, because no code of ours runs.
+
+**Verified against the Claude Code hooks documentation** (code.claude.com/docs/en/hooks and
+/hooks-guide), not assumed:
+
+- **`$CLAUDE_PROJECT_DIR` is provided to hook commands**, listed under the environment variables
+  available to hooks and documented as *set to project root*. The docs themselves use it in
+  example commands.
+- **Shell form runs through a shell.** A `command` hook *without* an `args` field is spawned via
+  `sh -c` on macOS and Linux, so `[ -d … ]`, `command -v`, `||` and `exec` all work. Adding `args`
+  switches to exec form and bypasses the shell — the pre-filter therefore **must not** use `args`.
+
+**Verified behaviour of the pre-filter itself** (all four states plus the degenerate one):
+
+| `.knowledge/` | `enou` on PATH | result |
+|---|---|---|
+| absent | absent | exit 0, no output |
+| absent | present | exit 0, no output |
+| present | absent | exit 0, no output |
+| present | present | `exec enou hook post-read` |
+| — | — | `$CLAUDE_PROJECT_DIR` unset → exit 0, no output (fails safe) |
+
+⚠️ **Windows is not covered by this design.** The docs state that shell-form hooks run under Git
+Bash on Windows, **or PowerShell when Git Bash is not installed**. PowerShell will not execute the
+POSIX pre-filter. So tier 1 works on macOS, Linux and Windows-with-Git-Bash, and needs a separate
+answer for Windows-without-Git-Bash. Recorded as an open question on issue #2 rather than guessed
+at — the docs specify which shell is used but do not address POSIX semantics on native Windows.
+
+### Tier 2 — store present, but module or dedup miss
+
+`enou` starts, finds the path belongs to no declared module or that this module was already
+injected this session, and exits.
+
+**Budget, relative:** p95 ≤ (p95 of an empty program on the same runtime, measured in the same
+run) + 5 ms.
+
+Relative because that is what survives a hardware change. The empty-program baseline moves with
+the machine; our 5 ms of work does not. An absolute number would encode today's laptop into a
+test that CI has to satisfy.
+
+Tier 2 must still open **no record file**. The check order is fixed: store present (tier 1),
+module membership, per-session dedup, and only then records.
+
+### Injecting path — unchanged
+
+**p95 < 200 ms**, the same budget as `why`, once per module per session. A full record scan costs
+153 ms at 10 000 records (research.md §3), which is where that number comes from.
 
 ## 7. Failure behaviour
 

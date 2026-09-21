@@ -81,7 +81,8 @@ because something would otherwise fail silently:
 | 9 | `SessionEnd` and `PreCompact` firing for one session capture at most once | prior art hit this with a single guard and still double-wrote (research.md §1) |
 | 10 | `after_implement` capture runs before the git extension's auto-commit | inverted, every `Knowledge-Record:` trailer points one commit late — a silent corruption |
 | 11 | With `enou` absent from `PATH`, and separately with no `.knowledge/` present, every agent hook and the git hook exits 0 and writes nothing to stdout or stderr | FR-042. A teammate who never installed the tool must not be blocked or warned, or the team deletes the hooks |
-| 12 | The suppressed `PostToolUse(Read)` path reads no record file, and stays under its p95 budget | it runs on every read; reaching the scan before discovering there is nothing to inject would put the injecting cost on every read |
+| 12 | **Tier 1**: the POSIX-sh pre-filter exits 0 in under 5 ms p95 without starting any runtime — measured in the same run as a bare `sh -c 'exit 0'` baseline | it runs on every read. No runtime can meet this: measured p95 startup is 8.0 ms for `bun -e 0` and 22.4 ms for `node -e 0` on this machine, 22.5–29.6 ms in a 2-vCPU sandbox |
+| 12a | **Tier 2**: a store-present-but-miss run stays within `(p95 of an empty program on the same runtime, measured in the same run) + 5 ms`, and opens no record file | the budget is relative so it survives a hardware change; an absolute one silently passes on a fast laptop and flakes on a 2-vCPU CI runner |
 | 13 | No file outside `src/knowledge/platform.ts` references a `Bun.*` global | enforced by a test, not by review — the seam is worthless the first time it is quietly bypassed |
 
 **No violations. Complexity Tracking is empty and the section is omitted.**
