@@ -87,6 +87,9 @@ Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan
 
 ## 5. How we work (please follow these)
 
+> The project's principles are ratified in [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+> This section summarises them for day-to-day work; where the two differ, the constitution governs.
+
 - **Branches:** cut `feat/<thing>` off `main`; open a focused PR into `main`. Keep PRs small.
 - **Commits:** conventional prefix (`feat:`, `fix:`, `docs:`, `chore:`). If AI-assisted, keep the
   `Co-Authored-By:` trailer.
