@@ -71,6 +71,17 @@ spec grew from 28 to 33 requirements (FR-001a, FR-029…FR-032) and from 10 to 1
 Numeric targets were deliberately *not* set: the session fixed the reporting rules — every
 percentage carries its denominator N — rather than the thresholds, which remain provisional.
 
+**Clarification session 2 (2026-09-21)** — five questions asked, five answered, all five
+overriding the recommendation. Closed three gaps this checklist had passed clean: the size budget
+FR-013 required but never defined, the conflict between FR-007's immutability and the
+constitution's redaction exception, and the undefined term "the full log" that three requirements
+leaned on. Spec grew 33 → 47 requirements.
+
+**Amendment from planning (2026-09-21)** — FR-036 amended to admit a third provenance, `oral`,
+with FR-036a and SC-002a defining how the three populations are measured. Raised by the data model
+during `/speckit-plan` rather than by this checklist: a spec can be internally consistent and still
+be missing a case the design surfaces. Recorded in both documents rather than absorbed silently.
+
 **Resolved by documented default, not by asking** (max 3 markers were allowed; these did not earn
 a slot): what qualifies as a decision worth recording, review-before-landing, advisory vs blocking
 flags in v1, how supersession is established, and retention of superseded records. All appear in
