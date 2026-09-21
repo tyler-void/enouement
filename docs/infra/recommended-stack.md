@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # Infrastructure — Recommended Stack & Orchestration Contract
 
 _Last updated: 2026-06-09. Decisive picks from the vendored-repo deep dive. Rationale in

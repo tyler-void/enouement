@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # Benchmark Results (2026-06-09, post-audit corrected)
 
 _Measured with the `bench/` harness + real backends (semble, codebase-memory-mcp). An

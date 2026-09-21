@@ -1,3 +1,5 @@
+> Superseded 2026-09-21 — scope narrowed to project memory (CCI). See docs/vision/vision.md.
+
 ## TECHNICAL SPECIFICATION: ECO-MCP GATEWAY
 
 **Project:** Enterprise-Grade AI Agent Cost-Optimization & Context Management Plugin

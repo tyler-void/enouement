@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # Infrastructure — Resource Footprint & Deployment (local vs hosted)
 
 _Last updated: 2026-06-09. Measured on the hono fixture (186 source files)._

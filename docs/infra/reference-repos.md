@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # Infrastructure — Reference Repos (clone / vendor / integrate)
 
 _Last updated: 2026-06-09._
