@@ -30,12 +30,13 @@ Date every substantive update.
 ### Infrastructure
 - [infra/architecture.md](infra/architecture.md) — the gateway design; **6 pillars** (0–5) + data flow.
 - [infra/recommended-stack.md](infra/recommended-stack.md) — ⭐ decisive tool picks per layer + the `BackendAdapter` orchestration contract.
-- [infra/reference-repos.md](infra/reference-repos.md) — the 7 vendored submodules, licenses, clone status.
+- [infra/reference-repos.md](infra/reference-repos.md) — the 7 reference repos, licenses, URLs (vendored as submodules 2026-06-09, removed 2026-09-21).
 - [infra/footprint-and-deployment.md](infra/footprint-and-deployment.md) — measured RAM/CPU/disk; local-vs-hosted decision (local-first).
 
-### Vendored repos
-The 7 reference repos are cloned as shallow git submodules under `vendor/` (all MIT/Apache-2.0).
-Re-init with `git submodule update --init`.
+### Reference repos
+The 7 upstream tools we studied (all MIT/Apache-2.0) were vendored as shallow git submodules
+under `vendor/` until 2026-09-21; nothing referenced them at runtime, so they were removed.
+[infra/reference-repos.md](infra/reference-repos.md) keeps the list and the URLs.
 
 ### Benchmark harness
 `bench/` — ablation benchmark (A0 baseline → A5 full gateway) over a self-contained fixture app.

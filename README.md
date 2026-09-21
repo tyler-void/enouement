@@ -59,7 +59,7 @@ The server auto-locates both (PATH, `~/.local/bin`, or this repo's `bench/.tools
 
 ## Install
 ```bash
-git clone --recurse-submodules https://github.com/tyler-void/eco-mcp
+git clone https://github.com/tyler-void/eco-mcp
 cd eco-mcp && bun install
 bun run test:client          # smoke test: spawns the server, lists + calls tools
 ```
@@ -88,7 +88,6 @@ lazily on first query.
 - `src/` — the MCP server (this product)
 - `bench/` — the accuracy-audited benchmark harness + measured results
 - `docs/` — vision, research, infra, demo plan ([start here](docs/README.md))
-- `vendor/` — the upstream tools we build on (git submodules, MIT/Apache-2.0)
 
 ## Status
 v0: retrieval (`search_structure`/`retrieve`), the `repo_map`, and **CCI Context Packs**

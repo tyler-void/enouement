@@ -15,10 +15,8 @@ can do real work. This guide gets you set up and shows where to jump in.
 `gh` CLI (for PRs). Linux/macOS.
 
 ```bash
-# clone WITH submodules (vendor/ are git submodules)
-git clone --recurse-submodules https://github.com/tyler-void/eco-mcp
+git clone https://github.com/tyler-void/eco-mcp
 cd eco-mcp
-# (already cloned without --recurse-submodules? run: git submodule update --init)
 
 # install deps
 bun install
@@ -59,7 +57,6 @@ The most convincing thing for the pitch is *using* it. Add it to your MCP config
 | `src/` | the MCP server (the product) |
 | `bench/` | accuracy-audited benchmark harness + measured results |
 | `docs/` | vision, research, infra, demo plan — **[start here](docs/README.md)** |
-| `vendor/` | upstream tools we build on (git submodules, MIT/Apache-2.0) |
 
 > **Branch note:** `main` has the v0 core (tools: `search_structure`, `find_concept`, `retrieve`,
 > `run_command`). **PR #1** (`feat/eco-mcp-gateway-v0`) adds the **CCI Context Pack** tools

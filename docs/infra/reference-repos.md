@@ -2,8 +2,13 @@
 
 _Last updated: 2026-06-09._
 
-All 7 hot-hit repos are now **cloned as shallow git submodules** under `vendor/` (done
-2026-06-09). **Before vendoring any code, confirm its license and keep upstream notices** —
+> **`vendor/` was removed on 2026-09-21** — all 7 submodules (1.3 GB checked out) are gone
+> along with the gateway scope that wrapped them. Nothing in the repo referenced them at
+> runtime. **The table below is now the record of what they were**; re-clone any of them from
+> its URL if you need to read the source.
+
+All 7 hot-hit repos were **cloned as shallow git submodules** under `vendor/` (done
+2026-06-09, removed 2026-09-21). **Before vendoring any code, confirm its license and keep upstream notices** —
 see the IP strategy in [../vision/vision.md](../vision/vision.md). The competition submission
 must stay scoped to the **gateway layer we build on top**, not the vendored tools themselves.
 All 7 licenses verified permissive (MIT / Apache-2.0) — clean.
@@ -53,7 +58,7 @@ Adjacent (technique, not necessarily vendored):
 
 ## Resolved decisions
 
-1. **Submodules** — done. All 7 cloned shallow under `vendor/`.
+1. **Submodules** — cloned shallow under `vendor/` 2026-06-09, removed 2026-09-21 (unused).
 2. **Overlap resolved** — primaries picked: rtk (A), codebase-memory-mcp (B), semble (C),
    9router (routing). gortex = opt-in escalation; cocoindex = alt. Full rationale + wrapper
    contract in [recommended-stack.md](recommended-stack.md).
