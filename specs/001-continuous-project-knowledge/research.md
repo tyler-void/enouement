@@ -305,7 +305,42 @@ truncated SHA do not.
 **Note**: `Bun.YAML.stringify` exists but is not used for writing — its output is not a stability
 contract, and the quote-everything rule is stricter than a general serialiser emits.
 
-## 10. Unmeasured — carried as risk, not as estimate
+## 10. `PostToolUse` → `additionalContext` — **measured on Claude Code 2.1.270**
+
+**Question**: does a `PostToolUse` hook's `hookSpecificOutput.additionalContext` actually reach
+the model? The documentation describes that field for `UserPromptSubmit`, and it could not be
+confirmed as documented for `PostToolUse`; issue anthropics/claude-code#24788 reports it not
+surfacing (citing #18427 for all tools). US3's entire delivery mechanism depends on it, so docs
+were not treated as behaviour.
+
+**Method**: `claude --version` → **2.1.270**. In a **throwaway repository** (not this one), a
+`.claude/settings.local.json` `PostToolUse` hook with matcher `Read` printed
+
+```json
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"ENOU-PROBE-<nonce>: the codeword is heliotrope"}}
+```
+
+A session then read a file and was asked whether a codeword was present in its context. The
+session's transcript JSONL was also grepped for the nonce.
+
+**Outcome: it surfaces.**
+
+- The model answered **"heliotrope"**, quoted the nonce verbatim, and identified it unprompted as
+  *"a PostToolUse hook message appended to the Read result"* — so it arrives attached to the tool
+  result, not as a separate turn.
+- The nonce appears **3 times** in the transcript JSONL, including in the recorded hook
+  `stdout`.
+
+**Conclusion**: the US3 delivery mechanism is viable on 2.1.270. Two caveats that follow from the
+method rather than weakening the result:
+
+- This is one version on one machine. The behaviour is **undocumented for `PostToolUse`**, so it
+  is not a contract — it can change without a changelog entry. Re-run this probe when the delivery
+  hook is built (T046 gates on it) and if hook behaviour ever looks wrong after an upgrade.
+- The probe measured *arrival*, not *budget*. It says nothing about the latency cost of returning
+  a large `additionalContext` on every read, which §3's tiering exists to control.
+
+## 11. Unmeasured — carried as risk, not as estimate
 
 | Unknown | Why it matters | Task |
 |---|---|---|

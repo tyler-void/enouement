@@ -22,7 +22,7 @@ not by the order they happen to be written in. Prose ordering is advice; a depen
 
 ## Phase 0: Empirical probe — run first, depends on nothing
 
-- [ ] **T000 — Probe whether `PostToolUse` actually surfaces `additionalContext`.** Docs are not
+- [x] **T000 — DONE 2026-09-21: it surfaces** (Claude Code 2.1.270; research.md §10). Probe whether `PostToolUse` actually surfaces `additionalContext`. Docs are not
   behaviour: the hooks documentation describes `hookSpecificOutput.additionalContext` for
   `UserPromptSubmit`, it could not be confirmed as documented for `PostToolUse`, and
   anthropics/claude-code#24788 reports it not surfacing (citing #18427 for all tools). Record
@@ -156,7 +156,7 @@ hash is.
 - [ ] T043 [US3] Implement `src/knowledge/view.ts` — **current records only: superseded records are excluded entirely** (the view is current truth, not history; `enou log` is where history lives). Selection by kind priority (invariant → gotcha → convention → decision), then ULID descending, top N; grouped by kind on display; overflow line naming the `log` command. Redacted records are **not** excluded — they stay in place rendered as `[redacted]` (T045). Depends on: **T018**, T010
 - [ ] T044 [US3] Implement `enou view <module>` and `enou log <module>`; **neither writes a file**. Depends on: T043
 - [ ] T045 [US3] Render a redacted summary as `[redacted]` with the identifier intact, keeping its place in the view (FR-027d). Depends on: T043
-- [ ] T046 [US3] Gate: **probe T000 must have returned "surfaces"** before this phase's hook work proceeds. If it returned "does not" or "transcript-only", stop — the delivery mechanism needs redesigning and that is not a task to improvise. Depends on: T000
+- [ ] T046 [US3] Gate: T000 returned **"surfaces"** on 2.1.270, so this phase may proceed. **Re-run the probe before building the hook** — the behaviour is undocumented for `PostToolUse` and can change without a changelog entry. If a re-run returns "does not" or "transcript-only", stop; the delivery mechanism needs redesigning and that is not a task to improvise. Depends on: T000
 - [ ] T047 [US3] Write the **tier-1 POSIX-sh pre-filter** as the hook `command` — no `args` field, or it becomes exec form and bypasses the shell. Depends on: T046
 - [ ] T048 [US3] Implement `enou hook post-read` — tier-2 checks in fixed order: module membership, then per-session dedup, then records. Opens **no record file** on a miss. Dedup is a **marker file outside the repository** at `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session_id>/<module-id>`, keyed by the `session_id` from the hook's stdin JSON, and **claimed by exclusive create (`O_EXCL`/`"wx"`)** — the create is the lock, because Claude Code issues parallel Reads and a check-then-write would let both inject. In-memory state is impossible here: every hook invocation is a fresh process. Depends on: T044, T047
 - [ ] T048a [US3] Add a `SessionStart` hook matching source **`compact`** that clears that session's marker directory. Without it the injected view is dropped by compaction while the marker survives, and the module goes silent for the rest of a long session. Depends on: T048
