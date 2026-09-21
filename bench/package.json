@@ -7,7 +7,8 @@
   "scripts": {
     "bench": "bun run src/run.ts",
     "report": "bun run src/report/waterfall.ts",
-    "smoke": "bun run src/smoke.ts"
+    "smoke": "bun run src/smoke.ts",
+    "jev": "bun run src/jev-rerank.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",

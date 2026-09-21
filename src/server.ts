@@ -4,6 +4,7 @@
 // Exposes token-thrifty code tools so cheap models can do real work:
 //   - search_structure : code-graph symbol search (the measured ~97% token winner)
 //   - retrieve         : tuned semble semantic chunks (small k) for when graph misses
+//                        (optional: ECO_JEV=on filters chunks by relevance — see src/decide/)
 //
 // Removed 2026-07-28: `find_concept` and `run_command` — both returned confidently wrong
 // output. See docs/research/discovery-2026-07-28.md §6.1 and §6.2.
@@ -14,12 +15,23 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { Structural } from "./backends/structural";
-import { Semantic } from "./backends/semantic";
+import { Semantic, formatChunks } from "./backends/semantic";
 import { workspaceRoot } from "./util/bin";
 import { findContextPacks, writeContextPack } from "./util/context";
+import { deciderFromEnv } from "./decide/jev";
+import { DEFAULT_RERANK, outcomeNote, rerankChunks, type RerankOpts } from "./decide/rerank";
 
 const structural = new Structural();
 const semantic = new Semantic();
+
+// Optional Jev relevance filter for `retrieve` — off unless ECO_JEV=on (see src/decide/jev.ts).
+const decider = deciderFromEnv();
+const rerankPool = Number(process.env.ECO_JEV_POOL ?? 12);
+const rerankOpts: RerankOpts = {
+  ...DEFAULT_RERANK,
+  threshold: Number(process.env.ECO_JEV_THRESHOLD ?? DEFAULT_RERANK.threshold),
+  mode: process.env.ECO_JEV_MODE === "pair" ? "pair" : "shared",
+};
 
 const log = (...a: unknown[]) => console.error("[eco-mcp]", ...a);
 
@@ -53,17 +65,34 @@ server.registerTool(
     description:
       "Tuned semantic retrieval (semble): returns the top few relevant code chunks for a query. " +
       "Prefer search_structure for locating symbols; use this when you need to SEE the " +
-      "actual code for a fuzzy concept. Kept to a small k to stay token-thrifty.",
+      "actual code for a fuzzy concept. Kept to a small k to stay token-thrifty." +
+      (decider
+        ? " Relevance-filtered: returns only chunks judged relevant (up to k), possibly fewer; " +
+          "a trailing [eco-mcp: …] line reports how many were kept."
+        : ""),
     inputSchema: {
       query: z.string(),
       path: z.string().optional(),
-      k: z.number().int().min(1).max(8).optional().describe("number of chunks (default 3)"),
+      k: z.number().int().min(1).max(8).optional().describe(decider ? "max chunks (default 3)" : "number of chunks (default 3)"),
     },
   },
   async ({ query, path, k }) => {
     if (!semantic.available())
       return { content: [{ type: "text", text: "semble not found (set ECO_SEMBLE_BIN or `uv tool install semble`)" }] };
-    return { content: [{ type: "text", text: semantic.search(path ?? workspaceRoot(), query, k ?? 3) }] };
+    const root = path ?? workspaceRoot();
+    const want = k ?? 3;
+    if (!decider) return { content: [{ type: "text", text: semantic.search(root, query, want) }] };
+
+    const pool = semantic.searchRaw(root, query, Math.max(rerankPool, want));
+    if (pool == null) return { content: [{ type: "text", text: "semantic search failed" }] };
+    if (!pool.length) return { content: [{ type: "text", text: `no semantic match for "${query}"` }] };
+    const o = await rerankChunks(query, pool, decider, { ...rerankOpts, k: want });
+    log(outcomeNote(o, rerankOpts.threshold));
+    const body = formatChunks(
+      o.kept.map((r) => r.chunk),
+      (i) => (o.kept[i]!.p == null ? "" : `  (jev p=${o.kept[i]!.p!.toFixed(2)})`),
+    );
+    return { content: [{ type: "text", text: `${body}\n\n${outcomeNote(o, rerankOpts.threshold)}` }] };
   },
 );
 
@@ -154,5 +183,5 @@ server.registerTool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 log(
-  `ready · workspace=${workspaceRoot()} · structural=${structural.available() ? "on" : "MISSING"} · semantic=${semantic.available() ? "on" : "MISSING"}`,
+  `ready · workspace=${workspaceRoot()} · structural=${structural.available() ? "on" : "MISSING"} · semantic=${semantic.available() ? "on" : "MISSING"} · jev-rerank=${decider ? `on (${decider.id}, pool ${rerankPool}, p≥${rerankOpts.threshold}, ${rerankOpts.mode})` : "off"}`,
 );

@@ -45,6 +45,31 @@ task, the agent writes the distilled domain logic (business rules, decisions, go
 sprint, an agent reads that ~1k-token Context Pack instead of the whole module. The synthesis is
 done by the agent's own model — no extra API key needed.
 
+### Experimental: Jev relevance filter for `retrieve` (opt-in)
+Our benchmark found fixed top-k semantic chunks cost ~4× a scoped grep. With this on, `retrieve`
+over-fetches a pool from semble, asks [TypeSafe Jev](https://docs.typesafe.ai) one yes/no per
+chunk ("must a developer read this to answer the query?"), and injects only chunks with
+p ≥ threshold (≤ k) — an adaptive k. On any Jev failure it returns the plain top-k, labelled
+`UNRANKED`.
+
+⚠️ This sends the query and code chunks to a hosted API (closed weights, US). A global API key
+is **not** enough to enable it — set it per project, only on code you're allowed to send out:
+
+```json
+"env": { "ECO_WORKSPACE": "/path/to/oss-repo", "ECO_JEV": "on", "TYPESAFE_API_KEY": "…" }
+```
+
+| Env | Default | |
+|---|---|---|
+| `ECO_JEV_POOL` | `12` | chunks fetched from semble before filtering |
+| `ECO_JEV_THRESHOLD` | `0.5` | min P(relevant) to keep |
+| `ECO_JEV_MODE` | `shared` | `shared` = 1 request with all chunks; `pair` = 1 request per chunk (no distractors) |
+| `ECO_JEV_MODEL` | `jev-1.13.0` | pinned — `jev-latest` moves |
+| `ECO_JEV_URL` / `ECO_JEV_TIMEOUT_MS` | TypeSafe API / `3000` | |
+
+Measure before trusting it: `cd bench && TYPESAFE_API_KEY=… bun run jev` (hono, tokens + hit
+rate vs top-1/3/5). Offline tests: `bun run test`.
+
 ## Requirements
 - [Bun](https://bun.sh) ≥ 1.3
 - **codebase-memory-mcp** binary (structural graph). Grab just the binary (don't run its installer,
