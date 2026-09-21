@@ -14,9 +14,24 @@ not by the order they happen to be written in. Prose ordering is advice; a depen
 | # | Constraint | Enforced by |
 |---|---|---|
 | 1 | Foundation before any writer | every task that can write a record depends on **T018** (foundation gate) |
-| 2 | Blind protocol before backfill | every backfill task depends on **T019** (question set committed) |
+| 2 | Blind protocol before backfill | backfill (**T040a**, **T042**) depends on **T019a** (hash committed, questions absent from the tree); **T019c** verifies ancestry mechanically |
 | 3 | MVP = foundation → US1 → US2 | Phase 5 depends on Phase 4; checkpoints are tasks (**T041**, **T057**) |
 | 4 | First dogfood record is the naming decision, after foundation | **T042** depends on T018 and is blocked from Phase 2 |
+
+---
+
+## Phase 0: Empirical probe — run first, depends on nothing
+
+- [ ] **T000 — Probe whether `PostToolUse` actually surfaces `additionalContext`.** Docs are not
+  behaviour: the hooks documentation describes `hookSpecificOutput.additionalContext` for
+  `UserPromptSubmit`, it could not be confirmed as documented for `PostToolUse`, and
+  anthropics/claude-code#24788 reports it not surfacing (citing #18427 for all tools). Record
+  `claude --version`. In a **throwaway repo, not this one**, add a `.claude/settings.local.json`
+  `PostToolUse` hook with matcher `Read` whose command prints a `hookSpecificOutput` carrying a
+  nonce codeword. Read a file, then ask for the codeword; also grep that session's transcript
+  JSONL for the nonce. Outcome is exactly one of **surfaces / does not surface / transcript-only**,
+  recorded in research.md with the version. **If it does not surface: stop and report — do not
+  pick a fallback design.** Depends on: nothing
 
 ---
 
@@ -59,12 +74,27 @@ is why this is a gate and not a recommendation.
 
 ## Phase 3: Blind protocol — BLOCKING for measurement (ordering constraint 2)
 
-- [ ] **T019 — Write and commit the evaluation question set** to `specs/001-continuous-project-knowledge/evaluation/questions.md`: at least 20 "why" questions drawn from this repository's history (June 2026 gateway, July 2026 tool removals, September 2026 narrowing), each with its known correct answer, agreed **before** the system is run against it. **This commit must precede every backfill commit — commit order in this repository is the evidence.** Depends on: nothing (deliberately — it must be possible to do this first)
 
-> Every task that backfills a record depends on T019 and must state in its commit message that the
-> backfill process did not read `evaluation/questions.md`. If a backfill lands first,
-> SC-002/SC-002a/SC-003 are **void** and cannot be rescued by re-running them — the questions are
-> already known to whoever wrote the records.
+**A commit-message attestation is not a protocol.** Saying "this backfill did not read the
+questions" is unenforceable: if the file is in the tree, any session that touched it — or carries
+it in project memory — has already read it, and cannot unread it. The blindness has to be
+structural, so the questions are **not in the repository** while the backfill happens. Only their
+hash is.
+
+- [ ] **T019a — Commit the hash commitment.** The repository owner writes the evaluation questions
+  and their known answers **outside this repository and outside any Claude session**, then commits
+  **only** `specs/001-continuous-project-knowledge/evaluation/questions.sha256` (the sha256 of
+  `questions.md`) and the question count N. `questions.md` itself is **not** committed yet and is
+  not present in the working tree. **This commit must precede every backfill commit.** Depends on:
+  nothing — it must be possible to do this first
+  > **No agent drafts these questions.** If the questions are drafted inside a session that later
+  > performs or supervises the backfill, the protocol is void before it starts.
+- [ ] **T019b — Reveal, after the last backfill commit.** Commit `questions.md` itself. Depends
+  on: T040a, T042
+- [ ] T019c Test the protocol rather than trusting it: `sha256(questions.md)` equals the committed
+  hash, the question count equals N, **and** the T019a hash commit is an ancestor of every
+  backfill commit — `git merge-base --is-ancestor <hash-commit> <backfill-commit>` for each.
+  A failure here voids SC-002/SC-002a/SC-003 and says so. Depends on: T019b
 
 ---
 
@@ -78,7 +108,9 @@ is why this is a gate and not a recommendation.
 - [ ] T022 [US1] Implement derived implementing-commit resolution in `src/knowledge/why.ts` — `git log --diff-filter=A -- .knowledge/records/<id>.md` via `platform.ts`. Depends on: **T018**
 - [ ] T023 [US1] Implement `enou modules list|uncovered` (FR-026). Depends on: **T018**, T010
 - [ ] T024 [US1] Implement `enou redact` — explicit only, requires `--reason`, writes `{date, reason, fields}`, prints that the original survives in git history and that a credential must be rotated. Depends on: **T018**
-- [ ] T025 [US1] Create the spec-kit extension at `.specify/extensions/enouement/` with `extension.yml` (**id `enouement`**, not `knowledge` — research.md §7 collision check) and register `after_implement` → `enou record`
+- [ ] T025 [US1] Create the spec-kit extension at `.specify/extensions/enouement/` with `extension.yml` (**id `enouement`**) declaring `provides.commands` as **markdown command files** — verified from the installed git extension, whose `extension.yml` provides `commands/speckit.git.commit.md`. Spec-kit hooks invoke an **agent command**, not a shell command, so a hook cannot call `enou record` directly
+- [ ] T025a [US1] **Write `commands/speckit.enouement.capture.md` — the capture prompt.** It instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item, supplying kind, a one-line summary, affected paths, and rejected alternatives for decisions — or, when nothing of consequence was learned, to add a `Knowledge-None:` trailer instead (FR-005, FR-030). **Acceptance check**: run it against a finished feature in this repository and judge the records it produces — are they things a reader would want in a year, or restatements of the diff? A record that only says what the diff says is a failure of this task, not of the tool. Depends on: T025, T020
+- [ ] T025b [US1] Write `commands/speckit.enouement.recall.md` for `before_specify`/`before_plan` — runs `enou why` over the feature's paths and presents existing records before the spec is written (FR-011). Depends on: T025, T033
 - [ ] T026 [US1] Order `after_implement` so `enouement` runs **before** the git extension's `speckit.git.commit` in `.specify/extensions.yml`. Depends on: T025
 - [ ] T027 [US1] Implement `enou recall` as a stub that **exits 1 with "not implemented"** and returns no results. Depends on: **T018**
 
@@ -107,11 +139,12 @@ is why this is a gate and not a recommendation.
 - [ ] T037 [P] [US2] Test (plan #8): chain ordering follows `supersedes` with IDs **deliberately minted out of clock order** — the monotonic ULID orders within one process only. Depends on: T034
 - [ ] T038 [P] [US2] Test: `why` follows git rename history (FR-038) for a file that moved. Depends on: T033
 - [ ] T039 [P] [US2] Test: a file with no records produces a plain "no records" answer, not an inferred rationale. Depends on: T035
-- [ ] T040 [US2] **Backfill** the June/July/September history into records, and run the evaluation set. Commit message must state the backfill did not read `evaluation/questions.md`. Report SC-002/SC-002a/SC-003 as *k/N* **per provenance population**, never merged; report `N=0` populations as "no data". Depends on: **T019**, T036
+- [ ] T040a [US2] **Blind backfill.** Record the June/July/September history as knowledge records with `provenance: backfilled`. The questions are not in the tree at this point (T019a), so this is blind by construction rather than by promise. Depends on: **T019a**, T036
+- [ ] T040b [US2] **Reveal and evaluate.** After T019b, run the evaluation set and report SC-002/SC-002a/SC-003 as *k/N* **per provenance population**, never merged; `N=0` populations as "no data"; raw counts where N is too small for a percentage. Depends on: T019b, T019c
 
 ---
 
-- [ ] **T041 — CHECKPOINT: MVP.** US1 + US2 complete. Capture is automatic and `enou why` answers. **Delivery is on demand only** — no agent sees knowledge unless it runs the command. Depends on: T032, T040
+- [ ] **T041 — CHECKPOINT: MVP.** US1 + US2 complete. Capture is automatic and `enou why` answers. **Delivery is on demand only** — no agent sees knowledge unless it runs the command. Depends on: T032, T040a
 
 ---
 
@@ -119,13 +152,14 @@ is why this is a gate and not a recommendation.
 
 **Goal**: an agent starting work in a declared module is handed a bounded current-truth view, unasked.
 
-- [ ] T042 [US3] **First dogfood record: the naming decision** (ordering constraint 4). `kind: decision`, `provenance: backfilled` — it documents a choice already made, so `contemporaneous` would misreport what it measures. `source`: the commit that added research.md §7. Content: `enouement` chosen; `eco-mcp`, `cairn`, `eco-harness` rejected with reasons; binary `enou` because the short forms were taken. Depends on: **T018**, **T019**, T020
-- [ ] T043 [US3] Implement `src/knowledge/view.ts` — selection by kind priority (invariant → gotcha → convention → decision), then ULID descending, top N; grouped by kind on display; overflow line naming the `log` command. Depends on: **T018**, T010
+- [ ] T042 [US3] **First dogfood record: the naming decision** (ordering constraint 4). `kind: decision`, `provenance: backfilled` — it documents a choice already made, so `contemporaneous` would misreport what it measures. `source`: the commit that added research.md §7. Content: `enouement` chosen; `eco-mcp`, `cairn`, `eco-harness` rejected with reasons; binary `enou` because the short forms were taken. Depends on: **T018**, **T019a**, T020
+- [ ] T043 [US3] Implement `src/knowledge/view.ts` — **current records only: superseded records are excluded entirely** (the view is current truth, not history; `enou log` is where history lives). Selection by kind priority (invariant → gotcha → convention → decision), then ULID descending, top N; grouped by kind on display; overflow line naming the `log` command. Redacted records are **not** excluded — they stay in place rendered as `[redacted]` (T045). Depends on: **T018**, T010
 - [ ] T044 [US3] Implement `enou view <module>` and `enou log <module>`; **neither writes a file**. Depends on: T043
 - [ ] T045 [US3] Render a redacted summary as `[redacted]` with the identifier intact, keeping its place in the view (FR-027d). Depends on: T043
-- [ ] T046 [US3] **Confirm `PostToolUse` supports `hookSpecificOutput.additionalContext`** before building the hook — the docs describe that field for `UserPromptSubmit`, and it is unverified for `PostToolUse` (contracts/hooks.md §3). If unsupported, stop and redesign delivery; do not ship a hook that silently injects nothing
+- [ ] T046 [US3] Gate: **probe T000 must have returned "surfaces"** before this phase's hook work proceeds. If it returned "does not" or "transcript-only", stop — the delivery mechanism needs redesigning and that is not a task to improvise. Depends on: T000
 - [ ] T047 [US3] Write the **tier-1 POSIX-sh pre-filter** as the hook `command` — no `args` field, or it becomes exec form and bypasses the shell. Depends on: T046
-- [ ] T048 [US3] Implement `enou hook post-read` — tier-2 checks in fixed order: module membership, then per-session dedup, then records. Opens **no record file** on a miss. Depends on: T044, T047
+- [ ] T048 [US3] Implement `enou hook post-read` — tier-2 checks in fixed order: module membership, then per-session dedup, then records. Opens **no record file** on a miss. Dedup is a **marker file outside the repository** at `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session_id>/<module-id>`, keyed by the `session_id` from the hook's stdin JSON, and **claimed by exclusive create (`O_EXCL`/`"wx"`)** — the create is the lock, because Claude Code issues parallel Reads and a check-then-write would let both inject. In-memory state is impossible here: every hook invocation is a fresh process. Depends on: T044, T047
+- [ ] T048a [US3] Add a `SessionStart` hook matching source **`compact`** that clears that session's marker directory. Without it the injected view is dropped by compaction while the marker survives, and the module goes silent for the rest of a long session. Depends on: T048
 
 ### US3 tests
 
@@ -134,8 +168,12 @@ is why this is a gate and not a recommendation.
 - [ ] T051 [P] [US3] Test (plan #11): with `enou` absent from PATH, and separately with no `.knowledge/`, every agent hook and the git hook exits 0 and writes **nothing** to stdout or stderr (FR-042). Depends on: T047
 - [ ] T052 [P] [US3] Test: view is byte-identical across two renders of an unchanged record set (SC-011), and across machines. Depends on: T043
 - [ ] T053 [P] [US3] Test: kind priority outranks recency — an invariant from last year appears above a decision from today. Depends on: T043
+- [ ] T053a [P] [US3] Test: a **superseded invariant does not appear in the view** and its successor does; a **redacted** record does appear, rendered `[redacted]`. Superseded and redacted are different states and must not be conflated. Depends on: T043, T045
 - [ ] T054 [P] [US3] Test: over-budget module produces top N plus an overflow line naming the command; a module that omits nothing carries no overflow line. Depends on: T043
 - [ ] T055 [US3] Test: a declared module with no records, and a path in no declared module, inject **nothing** — no placeholder, no empty section. Depends on: T048
+- [ ] T055a [P] [US3] Test: **two concurrent invocations for the same session and module — exactly one injects.** Run them genuinely in parallel; a sequential test would pass against a check-then-write implementation that races in practice. Depends on: T048
+- [ ] T055b [P] [US3] Test: after a compact reset, the next read of that module **re-injects**. Depends on: T048a
+- [ ] T055c [P] [US3] Test: the marker path is **never inside the repository** — assert the resolved path is outside the working tree for each of `XDG_RUNTIME_DIR` set, unset with `TMPDIR` set, and both unset. Depends on: T048
 
 ---
 
@@ -194,13 +232,13 @@ Phase 1 Setup (T001-T004)
         │
 Phase 2 Foundational (T005-T017) ──▶ T018 GATE ◀── constraint 1
         │                                │
-T019 question set ◀── constraint 2       │
+T019a hash commit ◀── constraint 2       │
         │                                │
         │                    Phase 4 US1 (T020-T032)
         │                                │
-        └──────────────▶ T040 backfill ──┤  (needs BOTH T019 and US2)
+        └──────────────▶ T040a blind backfill ─┤  (needs T019a + US2)
                                          │
-                         Phase 5 US2 (T033-T040)
+                         Phase 5 US2 (T033-T040b)
                                          │
                                   T041 CHECKPOINT: MVP  ◀── constraint 3
                                          │
@@ -229,7 +267,13 @@ US4 and US5 are independent of each other and may run in parallel after T041.
 
 ## Summary
 
-- **74 tasks**; 2 gates (T018, T019) and 2 checkpoints (T041 MVP, T057 personal dogfood)
-- **US1** 13 · **US2** 8 · **US3** 15 · **US4** 4 · **US5** 9 · setup/foundation/polish 25
+- **85 tasks**; 1 pre-flight probe (**T000**), 2 gates (T018 foundation, T019a hash commitment)
+  and 2 checkpoints (T041 MVP, T057 personal dogfood)
+- **US1** 15 · **US2** 9 · **US3** 20 · **US4** 4 · **US5** 9 · probe/setup/foundation/blind-protocol/polish 28
 - **MVP = T001–T041.** Suggested first release boundary.
-- All 14 mandatory tests from plan.md are mapped: #1→T028, #3→T031, #4→T068, #5→T013, #5a→T014, #6→T015, #7→T017, #8→T012/T037, #9→T061, #10→T032, #11→T051, #12→T049, #12a→T050, #13→T016
+- All 14 mandatory tests from plan.md are mapped: #1→T028, #3→T031, #4→T068, #5→T013, #5a→T014,
+  #6→T015, #7→T017, #8→T012/T037, #9→T061, #10→T032, #11→T051, #12→T049, #12a→T050, #13→T016
+- Added by review: T025a (capture prompt + acceptance check), T053a (superseded excluded from the
+  view), T055a/b/c (dedup race, compact reset, marker outside the tree), T019a/b/c (hash
+  commitment, reveal, ancestry check), T040a/b (blind backfill split from evaluation), T048a
+  (compact reset hook), T000 (additionalContext probe)

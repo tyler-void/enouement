@@ -39,15 +39,25 @@ none is *named* `knowledge`. But the command prints display names rather than id
 `enouement`, which the catalog returns nothing for. A generic id in a catalog already full of
 knowledge-themed extensions is a poor bet even when it happens to be unclaimed.
 
-| Spec-kit hook | Command | Purpose |
+**Spec-kit hooks invoke an agent command, not a shell command.** Verified from the installed git
+extension: `extension.yml` declares `provides.commands` as **markdown files**
+(`commands/speckit.git.commit.md`), and `.specify/extensions.yml` references them by command name.
+The agent reads the markdown and acts on it. So this extension ships three command files, and the
+one that captures is a **prompt** — which is where US1's quality actually lives.
+
+| Spec-kit hook | Extension command | What the prompt does |
 |---|---|---|
-| `before_specify` | `enou why --paths <feature paths> --json` | surfaces existing records for the paths a feature will touch, before its spec is written (FR-011) |
-| `before_plan` | same | the same records, at planning time |
-| `after_implement` | `enou record …` | captures what the feature decided (FR-003) |
+| `before_specify` | `speckit.enouement.recall` | runs `enou why --paths <feature paths> --json` and puts the existing records in front of the author before the spec is written (FR-011) |
+| `before_plan` | `speckit.enouement.recall` | the same records, at planning time |
+| `after_implement` | `speckit.enouement.capture` | instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item — **or**, if nothing was learned, to add a `Knowledge-None:` trailer (FR-003, FR-005, FR-030) |
+
+The capture prompt is the difference between a knowledge store that fills with useful records and
+one that fills with restatements of the diff. It is specified and reviewed as its own artefact,
+not written incidentally while wiring the hook.
 
 **Ordering is load-bearing.** `after_implement` capture MUST run **before** the git extension's
 `speckit.git.commit`, so the records land in the same commit as the work they describe rather than
-trailing it. In `.specify/extensions.yml` the `after_implement` list is ordered `knowledge` first,
+trailing it. In `.specify/extensions.yml` the `after_implement` list is ordered `enouement` first,
 `git` second. If that order inverts, records are committed one commit late and every
 `Knowledge-Record:` trailer points at the wrong commit — a silent corruption, so the ordering
 needs a test, not a comment.
@@ -66,10 +76,41 @@ session's recent reads, which is a materially different design with a different 
 is a US3 blocker, not an MVP one: US1 and US2 do not depend on it.
 | Every other agent | `enou view <module>` |
 
-The hook resolves the read file to a declared module, and suppresses if that module was already
-injected this session — deduplication state is per-session and in-memory, never a file in the
-tree. If the read path belongs to no declared module, or the module has no records, the hook emits
-**nothing**: no placeholder, no empty section (FR-012).
+The hook resolves the read file to a declared module and suppresses if that module was already
+injected this session. If the read path belongs to no declared module, or the module has no
+records, the hook emits **nothing**: no placeholder, no empty section (FR-012).
+
+### Deduplication state — a marker file outside the tree, not memory
+
+**"In-memory per session" cannot work and was wrong.** Every `PostToolUse` invocation is a fresh
+process — `sh -c` execs `enou`, which exits. In-memory state is empty on every single run, so the
+dedup would never hit and the view would be injected on *every read* in the module, which is the
+cost the whole tiering exists to avoid.
+
+State lives in a marker file, outside the repository so nothing derived is ever committed:
+
+```
+${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session_id>/<module-id>
+```
+
+`session_id` comes from the hook's stdin JSON — documented as a common field present on every
+hook event, alongside `cwd` and `transcript_path`.
+
+**Claim by exclusive create.** The marker is created with `O_EXCL` (`"wx"`): whichever process
+creates it injects, and any process that finds it already there suppresses. This is not
+belt-and-braces — Claude Code can issue **parallel Read calls**, so two hooks for the same module
+genuinely race, and a check-then-write would let both inject. The create *is* the lock.
+
+**Reset on compaction.** The injected view lives in the conversation context, so compaction
+removes it — but the marker would survive, and a long session would never see that module's
+knowledge again. `SessionStart` has a documented `source` matcher whose values include
+**`compact`** (alongside `startup`, `resume`, `clear`, `fork`), so a `SessionStart` hook matching
+`compact` clears that session's marker directory. `PreCompact` also exists (its matcher
+distinguishing `manual` from `auto`) and would work, but firing *after* the context is gone is the
+more robust ordering: it cannot clear markers for an injection that then survives.
+
+Markers are disposable by construction. Losing them costs one redundant injection; keeping a stale
+one costs a session's worth of silence, which is why the reset matters more than the cleanup.
 
 This is the one Claude-Code-specific surface in the design. Principle III is satisfied because the
 CLI equivalent is not a degraded path — it renders the identical bytes (FR-032), and the hook
