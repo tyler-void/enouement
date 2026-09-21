@@ -1,6 +1,44 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR — a principle was added (VI. Capture and Projection Are Mechanical) and the
+Operating Constraints section gained one constraint. No existing principle was removed, renamed,
+or redefined, so nothing that complied with 1.0.0 fails under 1.1.0.
+
+Added:
+  VI. Capture and Projection Are Mechanical — hooks and CI trigger capture, manual commands are a
+      fallback; every view over knowledge is a deterministic projection, never model-synthesised;
+      model-based capabilities are opt-in, labelled, and never required for a shipped path.
+  Operating Constraints — "Link, don't copy": git records what changed, knowledge records why and
+      links to commits, specs and PRs instead of duplicating them.
+
+Renamed:
+  Document title "Cairn Constitution" → "Eco-MCP Constitution". The 1.0.0 title jumped ahead of a
+  rename that has not happened in the codebase. "Cairn" also collides with 10+ GitHub repositories
+  and with the npm package `cairn-memory` in this exact problem space, so the project name is
+  itself an open question; the rename is deferred to its own spec. The GitHub repository remains
+  at tyler-void/cairn. Recorded rather than quietly reverted, per Principle IV.
+
+Templates requiring updates (re-checked for VI, not assumed):
+  ✅ .specify/templates/plan-template.md — no change. Its Constitution Check is a per-feature
+     placeholder; VI becomes a gate there at /speckit-plan time, not a template edit.
+  ✅ .specify/templates/spec-template.md — no change; VI adds no mandatory spec section.
+  ✅ .specify/templates/tasks-template.md — no change. VI implies hook-wiring and CI tasks, which
+     the existing Setup and Foundational phases already accommodate without a new category.
+  ✅ .specify/templates/checklist-template.md — no change; carries no constitution reference.
+  ✅ CONTRIBUTING.md — no change. It already names this file as the authority, and VI governs
+     product design rather than contributor workflow.
+  ⚠ CLAUDE.md — still PENDING, for the reason recorded under 1.0.0 below.
+
+Consistency note: VI and III are complementary, not redundant. III requires that a command-line
+equivalent EXIST for every path; VI requires that it not be the primary trigger. Neither weakens
+the other.
+
+Deferred items: none. No placeholder tokens remain.
+
+---- Superseded report for 1.0.0, kept per Principle IV ----
+
 Version change: (unfilled template) → 1.0.0
 Bump rationale: Initial ratification. The file was still the verbatim template with every
 placeholder unfilled (noted as outstanding in docs/README.md since 2026-06-09), so there is no
@@ -49,7 +87,7 @@ Templates requiring updates:
 Deferred items: none. No placeholder tokens remain.
 -->
 
-# Cairn Constitution
+# Eco-MCP Constitution
 
 ## Core Principles
 
@@ -112,6 +150,18 @@ a shipped dependency without its own decision record explaining the promotion.
 structurally separate is what let this project publish that its headline retrieval lever lost to
 scoped grep — and then narrow its own scope in response, which is the finding paying off.
 
+### VI. Capture and Projection Are Mechanical
+
+Knowledge capture MUST be triggered by hooks and CI, never left to anyone's memory; manual
+commands are a fallback. Every view over knowledge MUST be a deterministic projection of the
+records — never model-synthesised — so identical records always render identical output. Any
+model-based capability MUST be opt-in, labelled, and never required for a shipped path.
+
+**Rationale**: A practice that depends on remembering to run it is a practice that stops happening
+under deadline, which is exactly when the knowledge is most worth having. And a view that a model
+rewrites each time cannot be diffed, tested by comparison, or trusted to say only what the records
+say — it reintroduces at the read path the drift the records exist to prevent.
+
 ## Operating Constraints
 
 - The product MUST run offline. No network call, hosted service, or API key may be required for
@@ -126,6 +176,9 @@ scoped grep — and then narrow its own scope in response, which is the finding 
   reason.
 - Secrets MUST NOT be committed. Credentials belong in a gitignored `.env`; no key may appear in
   code, docs, commit messages, or test fixtures.
+- **Link, don't copy.** Git already records what changed; knowledge records why. A record MUST
+  link to the commits, specs and pull requests it concerns rather than duplicating their content,
+  so the two cannot drift apart and the record stays small.
 
 ## Development Workflow
 
@@ -164,4 +217,4 @@ violation MUST be recorded in the plan's Complexity Tracking table, naming the s
 that was rejected and why — an unjustified violation blocks the merge. Principle I and Principle
 II admit no exception: an unverifiable number and a confidently wrong answer are never justified.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 1.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
