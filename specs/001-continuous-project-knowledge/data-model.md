@@ -57,7 +57,7 @@ The only durable entity. Everything else is either a declaration or something co
 | `provenance.date` | yes | When the record was written (distinct from the date of what it describes) |
 | `paths` | yes | Code paths the record concerns. Globs allowed |
 | `spec` | no | The spec that drove it (FR-002) |
-| `commits` | no | **Optional, and only for `backfilled` records** pointing at history already on `main`. The *implementing* commit is **derived, never stored** — see §2.7 |
+| `commits` | no | **Optional, and only for `backfilled` records** pointing at history already on `main` (FR-002). The *implementing* commit is **derived, never stored** — see §2.7 |
 | `supersedes` | no | ID of the record this one overturns (FR-007) |
 | `rejected` | yes **iff** `kind: decision` | Alternatives considered and rejected. Other kinds must not be made to invent them (FR-001a) |
 | `redaction` | no | Present only on a redacted record: `{date, reason, fields[]}` (FR-033) |
@@ -174,8 +174,10 @@ Records are written by a **canonical writer**, never by a general YAML dump:
 
 1. **Every string scalar is double-quoted.** Measured on Bun 1.4.0 (research.md §9), unquoted
    scalars fail in three ways, two of them silent:
-   - `commits: 0123456` → the number `123456` — the leading zero is **lost silently**. A 6-char
-     hex SHA is all-digits 5.96% of the time, a 7-char one 3.73% (derived: (10/16)ⁿ).
+   - `commits: 0123456` → the number `123456` — the leading zero is **lost silently**.
+   - `commits: 6e40653` → **`Infinity`**, which serialises back as `null` — the SHA is **gone**.
+     Together with the all-digit case, **5.59% of 7-character SHAs** are destroyed unquoted
+     (3.73% all-digit + 1.86% exponent form): roughly one in eighteen.
    - `summary: #42 fixed` → `null` — `#` opens a comment and the value **disappears silently**.
    - `summary: why this: matters` → a parse error. Loud, but a summary is free text and will
      contain `": "`.

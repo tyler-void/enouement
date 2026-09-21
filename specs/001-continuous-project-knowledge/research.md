@@ -248,6 +248,9 @@ resulting JavaScript type. Re-run of a check first made on 1.3.13; the failures 
 | Input | Parses as | Consequence |
 |---|---|---|
 | `commits: 0123456` | number `123456` | **silent corruption** — the leading zero is gone |
+| `commits: 6e40653` | **`Infinity`** | **silent total loss** — serialises back as `null`; the SHA is gone |
+| `commits: 1e10` | number `10000000000` | exponent form, silently evaluated |
+| `commits: 0e12345` | number `0` | exponent form collapsing to zero |
 | `mode: 0755` | number `755` | same class |
 | `summary: #42 fixed` | `null` | **silent total loss** — `#` opens a comment |
 | `summary: why this: matters` | parse error | loud, but summaries are free text and will contain `": "` |
@@ -255,9 +258,18 @@ resulting JavaScript type. Re-run of a check first made on 1.3.13; the failures 
 | `date: 2026-09-21` | string | safe on 1.4.0; was a concern on earlier versions |
 | all of the above, double-quoted | string, verbatim | safe |
 
-**Derived**: a hex SHA is all-digits — and so at risk — with probability (10/16)ⁿ: **5.96% at 6
-characters, 3.73% at 7**. The ≈5–6% figure carried into this plan corresponds to 6-character
-abbreviations; git's default is 7, where it is 3.7%. Both are far too common to leave to chance.
+**Derived**: two independent hazards affect a 7-character hex SHA.
+
+| Hazard | Probability | Arithmetic |
+|---|---|---|
+| all-digit (`0123456`) | 3.73% | (10/16)⁷ |
+| exponent form (`6e40653`) | 1.86% | 5 × (1/16) × (10/16)⁶ — one `e`, not first or last, the rest decimal |
+| **combined** | **5.59%** | |
+
+So **roughly one 7-character SHA in eighteen** is destroyed by being written unquoted, and the
+exponent case is the worse of the two: an all-digit SHA at least survives as a wrong number, while
+`6e40653` becomes `Infinity` and serialises back as `null`. At 6 characters the all-digit case
+alone is 5.96%.
 
 **Decision**: a canonical writer that double-quotes **every** string scalar, with type validation
 after parsing and a byte-identical round-trip enforced by `lint` (data-model §2.8). The two silent

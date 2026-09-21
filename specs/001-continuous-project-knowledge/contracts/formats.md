@@ -17,6 +17,9 @@ parsed by tooling — so their compatibility rules are a contract, not an implem
 - YAML front matter delimited by `---`, then a Markdown body. Readable and diffable with no
   tooling (FR-020).
 - Once written, a file changes only by a conforming redaction (FR-034).
+- **A short SHA is never written unquoted.** 5.59% of 7-character SHAs parse as numbers on Bun
+  1.4.0 — `0123456` loses its leading zero and `6e40653` becomes `Infinity`, serialising back as
+  `null` (research.md §9).
 - **Every string scalar is double-quoted**, and `parse → re-serialise` is byte-identical. Not a
   style preference: unquoted scalars lose data silently on Bun 1.4.0 — an all-digit short SHA
   becomes a number and drops its leading zero, and a summary beginning `#` becomes `null`

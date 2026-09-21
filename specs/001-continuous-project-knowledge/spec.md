@@ -81,6 +81,11 @@ without a server, a network, or a particular agent vendor.
   stored **flat**, not in per-module directories: module membership is computed at render time
   from the declarations, including `formerly` aliases. So the overflow line names the command, not
   a directory.
+- Q: A record's implementing commit is written at capture time, but rebases and squash merges
+  rewrite exactly those SHAs — what does the link point at afterwards? → A: Nothing stored. The
+  implementing commit is **derived** as the commit that added the record's file, which survives
+  squash, rebase and amend. A stored `commits` field is kept only for `backfilled` records, whose
+  commits are already immutable history.
 - Q: Planning surfaced a third kind of provenance — knowledge someone simply told you, with no
   change of its own. Does FR-036 admit it? → A: Yes. Provenance is **{contemporaneous, backfilled,
   oral}**. An oral record has no commit, so it is excluded from SC-002's denominator rather than
@@ -335,7 +340,11 @@ flag appears. Push the missing knowledge; confirm it clears.
   **convention**. A record of kind `decision` MUST additionally state the alternatives that were
   considered and rejected; the other kinds MUST NOT be required to invent them.
 - **FR-002**: System MUST link each knowledge record to the spec that drove it (when one exists)
-  and to the commits that implemented it.
+  and to the commits that implemented it. The implementing commit MUST be **derived** — it is the
+  commit that added the record's file — and MUST NOT be stored in the record, so that the link
+  survives squash, rebase and amend rather than becoming a dangling reference the moment history
+  is rewritten. A record MAY carry a stored `commits` field **only when its provenance is
+  `backfilled`**, where it points at history that already exists and will not move.
 - **FR-003**: System MUST capture knowledge records on completion of a spec-kit feature without
   the developer explicitly requesting it.
 - **FR-004**: System MUST offer to capture knowledge from work done outside spec-kit before a

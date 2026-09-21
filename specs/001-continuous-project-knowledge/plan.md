@@ -74,6 +74,7 @@ because something would otherwise fail silently:
 | 3 | The implementing commit is derived via `git log --diff-filter=A`, and still resolves after a squash, a rebase and an amend | a stored SHA does not survive these; this is the whole reason it is derived |
 | 4 | `lint` reads `Knowledge-None:` trailers from a PR's own commits, and still finds one after a squash merge recomposes the message | reading only the merged commit flags correctly-declared changes, which trains reviewers to ignore the check |
 | 5 | The canonical writer double-quotes every string scalar; `parse → re-serialise` is byte-identical | measured: unquoted `0123456` becomes the number `123456` and `#42 fixed` becomes `null` — both silent (research.md §9) |
+| 5a | **Fixture: exponent-form short SHAs.** `6e40653` and `9e99999` must round-trip as strings; unquoted they parse as `Infinity` and serialise back as `null`. `1e10` and `0e12345` must round-trip; unquoted they become numbers | the worse half of the 5.59% of 7-char SHAs destroyed unquoted — an all-digit SHA at least survives as a wrong number, an exponent-form one vanishes entirely |
 | 6 | Type validation after parsing rejects a numeric `commits` entry and a non-`YYYY-MM-DD` `date` | parsing succeeding does not mean the value is right |
 | 7 | A record that fails to parse fails `lint` **and** is reported by `why` | an answer that looks complete while silently omitting a record is the confident-wrong-answer failure |
 | 8 | Ordering within a supersession chain follows the `supersedes` graph, verified with IDs deliberately minted out of clock order | the monotonic ULID orders within one process only; skewed clocks across machines would otherwise reorder history |
@@ -174,3 +175,22 @@ pre-commit hook and in CI, which FR-034 and FR-039 both depend on.
 The store lives at `.knowledge/` rather than a name derived from the project, because the project
 name is unsettled (see research.md §7) and a directory is expensive to rename once real records
 reference it.
+
+## Task ordering constraints
+
+`/speckit-tasks` MUST respect these. Each exists because reversing it produces a failure that
+cannot be repaired afterwards.
+
+1. **Foundation before any writer.** The ID generator, the canonical writer/parser and the
+   round-trip lint land **before** any command that can write a record. Otherwise records exist
+   in a non-canonical form before the rule exists, and FR-034's immutability means they can never
+   be rewritten into it — only superseded. There is no migration path, so there is no second
+   chance at this ordering.
+2. **The blind protocol is a task, and it comes first.** The evaluation question set and its known
+   answers are written and committed as **their own task, before any backfill task**. Every
+   backfill task must state that it does not read that file. Commit order in this repository is
+   the evidence; if a backfill lands first, SC-002/SC-002a/SC-003 results are **void** and cannot
+   be rescued by re-running them — the knowledge of the questions is already in the backfiller.
+3. **MVP order**: foundation → **US1** (record, secret scan, spec-kit `after_implement` capture)
+   → **US2** (`why`). MVP checkpoint here. **US3** (views), **US4** (capture outside spec-kit) and
+   **US5** (PR flags) are separate phases after that checkpoint, each independently shippable.
