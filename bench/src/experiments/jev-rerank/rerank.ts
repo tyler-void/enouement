@@ -1,4 +1,8 @@
-// Jev rerank for `retrieve`: turn semble's fixed top-k into an ADAPTIVE k.
+// Jev rerank experiment: turn semble's fixed top-k into an ADAPTIVE k.
+//
+// Research only — this shipped briefly behind the `retrieve` tool (ECO_JEV=on); that tool was
+// removed 2026-09-21 when the product narrowed to project memory. Measured by
+// bench/src/jev-rerank.ts.
 //
 // Why: our own benchmark (docs/research/benchmark-results.md) found naive top-k semantic
 // chunks cost ~4× a scoped grep — k is a fixed budget whether or not the chunks help.
@@ -8,7 +12,7 @@
 //
 // Jev decides what enters context. The agent's model decides what it means.
 
-import type { Chunk } from "../backends/semantic";
+import type { Chunk } from "./semantic";
 import type { Decider, NoulQuestion } from "./jev";
 
 export interface RerankOpts {
@@ -118,7 +122,7 @@ export function outcomeNote(o: RerankOutcome, threshold: number): string {
     case "low-confidence":
       return (
         `[eco-mcp: jev found no chunk with p≥${threshold} among ${o.pool}; showing best guess only ` +
-        `(p=${o.kept[0]!.p!.toFixed(2)}) — try search_structure/find_concept · ${timing}]`
+        `(p=${o.kept[0]!.p!.toFixed(2)}) — try a scoped grep · ${timing}]`
       );
     case "ranked":
       return `[eco-mcp: jev kept ${o.kept.length}/${o.pool} chunks (p≥${threshold}, ${o.mode}) · ${timing}]`;

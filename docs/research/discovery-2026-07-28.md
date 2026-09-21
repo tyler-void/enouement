@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # eco-mcp — discovery pass for repositioning
 
 **Date:** 2026-07-28 · **Branch:** `feat/eco-mcp-gateway-v0` @ `758d22c` · **Mode:** read-only, no code modified.

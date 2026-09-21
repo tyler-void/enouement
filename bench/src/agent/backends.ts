@@ -9,6 +9,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { formatChunks, parseSembleResults } from "../experiments/jev-rerank/semantic";
 
 function which(bin: string): string | null {
   const p = Bun.spawnSync(["sh", "-c", `command -v ${bin} || true`]);
@@ -41,24 +42,16 @@ export class SembleBackend {
    */
   search(query: string, workdir: string, k = 5, maxCharsPerChunk = 1200): string {
     if (!this.bin) return "";
-    const p = Bun.spawnSync([this.bin, "search", query, workdir], {
+    // `-k` matters: semble defaults to 5, so a larger k was silently capped. And the parser
+    // must accept both JSON shapes — 0.4.0 flattened `{chunk: {...}, score}` to
+    // `{file_path, start_line, end_line, score, content}`, which the old `r.chunk` read
+    // turned into empty content on any current install, measuring ~0 retrieval tokens.
+    const p = Bun.spawnSync([this.bin, "search", query, workdir, "-k", String(k)], {
       env: { ...process.env, HF_HUB_OFFLINE: process.env.HF_HUB_OFFLINE ?? "1" },
     });
-    const raw = p.stdout?.toString() ?? "";
-    let parsed: any;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return "";
-    }
-    const results = (parsed.results ?? []).slice(0, k);
-    return results
-      .map((r: any) => {
-        const c = r.chunk ?? {};
-        const content = String(c.content ?? "").slice(0, maxCharsPerChunk);
-        return `// ${c.location ?? c.file_path}\n${content}`;
-      })
-      .join("\n\n");
+    const chunks = parseSembleResults(p.stdout?.toString() ?? "", maxCharsPerChunk);
+    if (chunks == null) return "";
+    return formatChunks(chunks.slice(0, k));
   }
 }
 

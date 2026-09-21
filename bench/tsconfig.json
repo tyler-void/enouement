@@ -10,5 +10,9 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false
-  }
+  },
+  // Our sources only. `fixtures/` holds vendored OSS (hono) and a deliberately broken
+  // sample app; type-checking those is meaningless and drowns out real errors.
+  "include": ["src", "test", "config"],
+  "exclude": ["node_modules", "fixtures", "results"]
 }

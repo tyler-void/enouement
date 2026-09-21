@@ -1,92 +1,46 @@
-# Eco-MCP Gateway
+# Eco-MCP
 
-A token-thrifty **MCP server** for AI coding agents (Cursor / Claude Code / Cline / Codex). It
-replaces the expensive habits that drive agentic-coding cost — `grep` + reading whole files,
-dumping verbose logs — with compact, structured tools, so **cheap models can do real work**.
+**Project memory for AI coding agents, over MCP.** Two tools: the agent reads a module's
+**Context Pack** before it works, and writes back what it learned when it's done. The knowledge
+lands in your repo, next to the code, and goes through code review like everything else.
 
-Born from the GitHub Copilot usage-based-billing shock (June 2026). Measured, not assumed —
-see [docs/research/benchmark-results.md](docs/research/benchmark-results.md).
+## Scope (narrowed 2026-09-21)
 
-## Known issues
+This started as a token-thrifty *gateway* wrapping retrieval backends. That premise expired:
+codebase-memory-mcp, semble and rtk each ship their own MCP server, skills and hooks now, so
+wrapping them added nothing, and Claude Code loads nested `CLAUDE.md`/`AGENTS.md` on demand,
+which covers the read side of project memory.
 
-**Two tools were removed on 2026-07-28 because they returned incorrect output.**
+What is still unsolved is the **write** side — nobody writes the knowledge back — so that is the
+whole product. `search_structure`, `retrieve` and `repo_map` were removed; the retrieval research
+continues in [`bench/`](bench/README.md), as measurement, not as shipped tools.
 
-- `find_concept` — codebase-memory-mcp 0.7.0 silently ignores the `semantic_query` parameter and
-  returns the entire symbol table, so unrelated queries produced byte-identical results.
-- `run_command` — the output compressor misclassified any output containing the substring `test`
-  (so `latest` matched too) as a test run and discarded the rest; when nothing survived the filter
-  it substituted the literal string `all checks passed (no failures)`. `cat package.json` returned
-  that string with exit 0.
-
-**The `~97%` / `78%` retrieval figures below and in the benchmark docs are under revision.** The
-benchmark's grep baseline and its structural baseline were asked different questions — a bare
-keyword versus an anchored `^name$` regex — so the comparison is not like-for-like. A corrected
-measurement is pending; treat both numbers as unreliable until it lands.
-
-Details for all three: [docs/research/discovery-2026-07-28.md](docs/research/discovery-2026-07-28.md).
-
-## What it gives the agent (v0)
+## What it gives the agent
 
 | Tool | What it does | Why it's cheap |
 |------|-------------|----------------|
-| `search_structure` | find symbols by name regex via a code graph | returns signatures + call-degree, not files (**~97% fewer tokens** vs grep+read, measured) |
-| `retrieve` | tuned semantic chunks (small k) when you must see code | small k — naive top-k isn't a win (we measured) |
-| `repo_map` | token-budgeted map of the most-referenced symbols (PageRank proxy) | orient in a repo without listing/reading files |
-| `get_context` | read the module's **Context Pack** (`.context/*.md` living docs) | digested domain knowledge, not source |
-| `update_context` | persist what you learned to `.context/domain_logic.md` (CCI) | next agent reads ~1k tokens, not the module |
-
-> Design finding baked in: the token win comes from **structural retrieval + routing**, not from
-> bolting on a vector DB. `search_structure` is the default; semantic is tuned and secondary.
+| `get_context` | read the module's **Context Pack** (`.context/*.md` living docs), module-specific first, broader context after | digested domain knowledge, not source |
+| `update_context` | persist what you learned to `<module>/.context/domain_logic.md` | next agent reads ~1k tokens, not the module |
 
 ### Continuous Context Integration (CCI)
-`get_context`/`update_context` turn the repo into a **living knowledge base**: after finishing a
-task, the agent writes the distilled domain logic (business rules, decisions, gotchas) into
-`<module>/.context/domain_logic.md`, staged into the PR so **code review = context review**. Next
-sprint, an agent reads that ~1k-token Context Pack instead of the whole module. The synthesis is
-done by the agent's own model — no extra API key needed.
-
-### Experimental: Jev relevance filter for `retrieve` (opt-in)
-Our benchmark found fixed top-k semantic chunks cost ~4× a scoped grep. With this on, `retrieve`
-over-fetches a pool from semble, asks [TypeSafe Jev](https://docs.typesafe.ai) one yes/no per
-chunk ("must a developer read this to answer the query?"), and injects only chunks with
-p ≥ threshold (≤ k) — an adaptive k. On any Jev failure it returns the plain top-k, labelled
-`UNRANKED`.
-
-⚠️ This sends the query and code chunks to a hosted API (closed weights, US). A global API key
-is **not** enough to enable it — set it per project, only on code you're allowed to send out:
-
-```json
-"env": { "ECO_WORKSPACE": "/path/to/oss-repo", "ECO_JEV": "on", "TYPESAFE_API_KEY": "…" }
-```
-
-| Env | Default | |
-|---|---|---|
-| `ECO_JEV_POOL` | `12` | chunks fetched from semble before filtering |
-| `ECO_JEV_THRESHOLD` | `0.5` | min P(relevant) to keep |
-| `ECO_JEV_MODE` | `shared` | `shared` = 1 request with all chunks; `pair` = 1 request per chunk (no distractors) |
-| `ECO_JEV_MODEL` | `jev-1.13.0` | pinned — `jev-latest` moves |
-| `ECO_JEV_URL` / `ECO_JEV_TIMEOUT_MS` | TypeSafe API / `3000` | |
-
-Measure before trusting it: `cd bench && TYPESAFE_API_KEY=… bun run jev` (hono, tokens + hit
-rate vs top-1/3/5). Offline tests: `bun run test`.
+After finishing a task, the agent writes the distilled domain logic (business rules, decisions,
+gotchas) into `<module>/.context/domain_logic.md`, staged into the PR so **code review = context
+review**. Next sprint, an agent reads that ~1k-token Context Pack instead of the whole module.
+The synthesis is done by the agent's own model — no extra API key, no network calls, nothing
+leaves the machine.
 
 ## Requirements
 - [Bun](https://bun.sh) ≥ 1.3
-- **codebase-memory-mcp** binary (structural graph). Grab just the binary (don't run its installer,
-  which reconfigures your agents):
-  ```bash
-  curl -fsSL https://github.com/DeusData/codebase-memory-mcp/releases/latest/download/codebase-memory-mcp-linux-amd64-portable.tar.gz | tar -xz -C ~/.local/bin
-  ```
-- **semble** (semantic, optional): `uv tool install semble`
 
-The server auto-locates both (PATH, `~/.local/bin`, or this repo's `bench/.tools/`). Override with
-`ECO_CBM_BIN` / `ECO_SEMBLE_BIN`.
+That's all. The server reads and writes Markdown in your repo; it shells out to nothing. (The
+benchmark harness in `bench/` optionally wants **semble** — `uv tool install semble` — for the
+retrieval experiments. The server never calls it.)
 
 ## Install
 ```bash
-git clone --recurse-submodules https://github.com/tyler-void/eco-mcp
+git clone https://github.com/tyler-void/eco-mcp
 cd eco-mcp && bun install
-bun run test:client          # smoke test: spawns the server, lists + calls tools
+bun run test:client          # smoke test: spawns the server, lists + calls both tools
 ```
 
 ## Wire it into your agent
@@ -106,18 +60,29 @@ bun run test:client          # smoke test: spawns the server, lists + calls tool
 
 **Cursor** — same block in `~/.cursor/mcp.json` or `.cursor/mcp.json`.
 
-`ECO_WORKSPACE` is the repo the tools operate on (defaults to the server's cwd). The graph indexes
-lazily on first query.
+`ECO_WORKSPACE` is the repo whose Context Packs are read and written (defaults to the server's
+cwd).
+
+## Known issues
+
+**The `~97%` / `78%` retrieval figures in the benchmark docs are under revision.** The benchmark's
+grep baseline and its structural baseline were asked different questions — a bare keyword versus
+an anchored `^name$` regex — so the comparison is not like-for-like. A corrected measurement is
+pending; treat both numbers as unreliable until it lands. They no longer back any claim in this
+README, since retrieval is not part of the product.
+
+History: `find_concept` and `run_command` were removed on 2026-07-28 for returning confidently
+wrong output; `search_structure`, `retrieve` and `repo_map` followed on 2026-09-21 with the
+scope change. Details for all of it:
+[docs/research/discovery-2026-07-28.md](docs/research/discovery-2026-07-28.md).
 
 ## Repo layout
 - `src/` — the MCP server (this product)
-- `bench/` — the accuracy-audited benchmark harness + measured results
+- `bench/` — the accuracy-audited benchmark harness + retrieval experiments
 - `docs/` — vision, research, infra, demo plan ([start here](docs/README.md))
-- `vendor/` — the upstream tools we build on (git submodules, MIT/Apache-2.0)
 
 ## Status
-v0: retrieval (`search_structure`/`retrieve`), the `repo_map`, and **CCI Context Packs**
-(`get_context`/`update_context`) — installable. `find_concept` and `run_command` were removed
-2026-07-28 (see Known issues above).
-Not yet built: cache-aware egress + burn-rate meter, and model routing. See
-[docs/vision/demo-plan.md](docs/vision/demo-plan.md).
+The two CCI tools are installable and covered by `bun run test:client`. Next, per
+[docs/vision/vision.md](docs/vision/vision.md): make the write side automatic (a Stop hook and a
+skill) rather than something the agent has to remember to call. Superseded and not being built:
+the cache-aware egress meter and model routing from the gateway era.

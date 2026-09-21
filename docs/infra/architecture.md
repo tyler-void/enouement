@@ -1,3 +1,5 @@
+> Historical — describes the pre-2026-09-21 gateway scope.
+
 # Infrastructure — Architecture
 
 _Last updated: 2026-06-09. Derived from `SPEC.md` (v0), with corrections and research links._

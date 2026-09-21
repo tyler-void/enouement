@@ -1,10 +1,10 @@
 // Offline unit tests: rerank logic with a scripted Decider.
-// Run: bun test ./test/rerank.test.ts
+// Run: cd bench && bun run test
 
 import { describe, expect, test } from "bun:test";
-import type { Chunk } from "../src/backends/semantic";
-import { deciderFromEnv, type Decider, type NoulQuestion } from "../src/decide/jev";
-import { DEFAULT_RERANK, outcomeNote, rerankChunks } from "../src/decide/rerank";
+import type { Chunk } from "../src/experiments/jev-rerank/semantic";
+import { deciderFromEnv, type Decider, type NoulQuestion } from "../src/experiments/jev-rerank/jev";
+import { DEFAULT_RERANK, outcomeNote, rerankChunks } from "../src/experiments/jev-rerank/rerank";
 
 const chunks: Chunk[] = [
   { location: "src/index.ts:1-10", content: "export { Hono } from './hono'" },

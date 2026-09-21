@@ -1,8 +1,27 @@
-# Vision — Eco-MCP Gateway
+# Vision — Eco-MCP
 
-_Last updated: 2026-06-09._
+_Last updated: 2026-09-21 (scope narrowed). Gateway-era sections below are kept and marked._
+
+## Current scope (2026-09-21)
+
+**Product: the CCI write side.** An agent finishing a task writes the distilled domain logic
+back into the repo — **automatic** (not something it has to remember to call), **in-repo**
+next to the code, **per-module**, and **reviewed in the PR** like any other change. That is the
+one thing still unsolved: codebase-memory-mcp, semble and rtk each ship their own MCP server,
+skills and hooks now, so wrapping them in a gateway adds nothing, and Claude Code already loads
+nested `CLAUDE.md`/`AGENTS.md` on demand — which covers the *read* side. Nobody writes back.
+
+**Research: `bench/`.** Independent, cross-tool measurement of what actually saves tokens, kept
+deliberately separate from the product and free to report that a lever does not work — it
+already has. That includes the Jev relevance-filter experiment (adaptive k over semble chunks),
+which lives in `bench/src/experiments/jev-rerank/` and claims no result until it is measured
+against a live API.
+
+Everything below predates this and is kept for the record.
 
 ## One-liner
+
+> Superseded 2026-09-21 — the proxy/gateway layer was never built and is not planned.
 
 A local proxy + MCP server that sits between an AI coding agent (Cursor / Cline /
 Copilot / Claude Code) and the LLM API, and aggressively cuts token spend so cheap models
@@ -28,6 +47,9 @@ chat, **input tokens** dominate cost, accuracy does **not** scale with spend, an
 > Feed it the **smallest clean context** that lets it finish the task — and a cheap model
 > will do just fine.
 
+> Superseded 2026-09-21 — levers 1–3 belong to tools that now ship their own MCP servers.
+> Lever 4 is the product.
+
 Four levers, each backed by an existing proven tool we learn from:
 1. **Estimate & gate cost before dispatch** (burn-rate firewall).
 2. **Compress I/O** — strip noisy logs, filler ACs, full-file payloads.
@@ -35,6 +57,9 @@ Four levers, each backed by an existing proven tool we learn from:
 4. **Accumulate living context** so future tasks start from digested knowledge, not raw code.
 
 ## North-star outcomes
+
+> Superseded 2026-09-21 — the token-reduction targets were the gateway's.
+> Onboarding velocity and living documentation carry over as the CCI outcomes.
 
 - **70–90% reduction** in input tokens per task.
 - **Cheap models become workhorses** — most tasks complete on Haiku/GPT-mini; escalate to
@@ -46,6 +71,8 @@ Four levers, each backed by an existing proven tool we learn from:
 
 ## Continuous Context Integration (CCI) — the differentiator
 
+> **Current.** This section is the product; see Current scope above.
+
 Most teams use AI as disposable labor: code, then throw away the context. The Eco-MCP bet
 is **progressive knowledge accumulation** — every User Story / defect fix appends a
 distilled `.context/*.md` next to the code, staged into the PR so **code review = context
@@ -54,6 +81,8 @@ implicit knowledge (in seniors' heads) into explicit knowledge (in the repo) at 
 token cost, and naturally forces documentation the way code review forces quality.
 
 ## Competition positioning
+
+> Superseded 2026-09-21 — the pitch below describes the gateway.
 
 Pitch it as infrastructure, not personal savings:
 
@@ -77,12 +106,18 @@ Pitch it as infrastructure, not personal savings:
   core projects (e.g. crawler / stock-dashboard work) entirely out of the submission. The
   gateway is the perfect thing to give away — it's infrastructure, fits Round 1's
   "creates value for the org" criterion, and shields personal projects.
-- **Plan for this repo:** we clone/vendor the current hot-hit repos here to study and
+- **Plan for this repo:** _(superseded 2026-09-21 — `vendor/` was removed; the list and the
+  licenses live on in [../infra/reference-repos.md](../infra/reference-repos.md).)_
+  we clone/vendor the current hot-hit repos here to study and
   integrate them. Track each one's license in
   [../infra/reference-repos.md](../infra/reference-repos.md) before vendoring, and keep the
   competition submission scoped to the gateway layer we build on top.
 
 ## Open questions to resolve
+
+> Superseded 2026-09-21 — packaging and indexing questions belonged to the gateway.
+> The live question is the last one: how to cap/summarize `.context/*.md` so the living docs
+> do not themselves bloat over sprints.
 
 - Daemon vs. IDE plugin packaging? (Leaning plugin for team setup ease.)
 - Central indexing cronjob vs. per-dev local index for the AST graph?

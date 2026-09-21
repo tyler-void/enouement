@@ -2,7 +2,7 @@
 //
 // Same 5 hono queries + targets as microbench.ts. Unlike microbench (size only), this also
 // scores quality: hit = the target file is among the injected chunks.
-//   baseline : semble top-k, k ∈ {1,3,5}              (what `retrieve` injects today)
+//   baseline : semble top-k, k ∈ {1,3,5}              (fixed k, as a plain MCP would inject)
 //   jev      : semble pool of POOL → Jev noul per chunk → keep p ≥ threshold, ≤ k=3
 //
 // Needs: semble on PATH (or SEMBLE/ECO_SEMBLE_BIN), the hono fixture, and for the jev arm
@@ -16,9 +16,9 @@ import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { encode } from "gpt-tokenizer";
-import { Semantic, formatChunks, type Chunk } from "../../src/backends/semantic";
-import { deciderFromEnv } from "../../src/decide/jev";
-import { DEFAULT_RERANK, rerankChunks } from "../../src/decide/rerank";
+import { Semantic, formatChunks, type Chunk } from "./experiments/jev-rerank/semantic";
+import { deciderFromEnv } from "./experiments/jev-rerank/jev";
+import { DEFAULT_RERANK, rerankChunks } from "./experiments/jev-rerank/rerank";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const HONO = join(here, "..", "fixtures", "oss", "hono");

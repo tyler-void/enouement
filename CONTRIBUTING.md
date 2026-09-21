@@ -1,8 +1,13 @@
-# Collaborator Guide — Eco-MCP Gateway
+# Collaborator Guide — Eco-MCP
 
-Welcome! This is our **competition submission**: a token-thrifty **MCP server** for AI
-coding agents (Cursor / Claude Code / Copilot) that cuts the cost of agentic coding so cheap models
-can do real work. This guide gets you set up and shows where to jump in.
+Welcome! This is our **competition submission**: an **MCP server** that gives AI coding
+agents (Cursor / Claude Code / Copilot) project memory — per-module Context Packs the agent reads
+before it works and writes back when it's done. This guide gets you set up and shows where to
+jump in.
+
+> **Scope narrowed 2026-09-21.** The retrieval tools (`search_structure`, `retrieve`, `repo_map`)
+> are gone: the tools we wrapped now ship their own MCP servers. Retrieval lives on in `bench/`
+> as measurement. See the Scope section of [`README.md`](README.md).
 
 > Start with [`README.md`](README.md) (what it is) and [`docs/README.md`](docs/README.md) (the full
 > index: vision, research, benchmark, infra, demo plan).
@@ -15,27 +20,20 @@ can do real work. This guide gets you set up and shows where to jump in.
 `gh` CLI (for PRs). Linux/macOS.
 
 ```bash
-# clone WITH submodules (vendor/ are git submodules)
-git clone --recurse-submodules https://github.com/tyler-void/eco-mcp
+git clone https://github.com/tyler-void/eco-mcp
 cd eco-mcp
-# (already cloned without --recurse-submodules? run: git submodule update --init)
 
 # install deps
 bun install
 cd bench && bun install && cd ..
 
-# get the retrieval backends
-#  - codebase-memory (structural graph) — grab just the binary, do NOT run its installer
-#    (it would reconfigure your editors). Put it on PATH or in bench/.tools/.
-mkdir -p ~/.local/bin
-curl -fsSL https://github.com/DeusData/codebase-memory-mcp/releases/latest/download/codebase-memory-mcp-linux-amd64-portable.tar.gz | tar -xz -C ~/.local/bin
-#  - semble (semantic search) — optional but recommended
+# the server itself needs nothing else. For the bench/ retrieval experiments only:
 uv tool install semble
 ```
 
 **Verify it works (no API key needed):**
 ```bash
-bun run test:client                 # spawns the MCP server, lists + calls every tool
+bun run test:client                 # spawns the MCP server, lists + calls both tools
 cd bench
 bun run smoke                       # offline harness sanity (should say ALL SMOKE CHECKS PASSED)
 bun run src/microbench.ts           # the deterministic retrieval/compression lever numbers
@@ -48,7 +46,8 @@ bun run src/microbench.ts           # the deterministic retrieval/compression le
 The most convincing thing for the pitch is *using* it. Add it to your MCP config (Cursor
 `~/.cursor/mcp.json`, Claude Code `.mcp.json`, or VS Code `~/.config/Code/User/mcp.json`) — see the
 **"Wire it into your agent"** section in [`README.md`](README.md) for the exact block. Then call
-`search_structure` / `get_context` while you work and watch the token savings.
+`get_context` before you start on a module and `update_context` when you finish — the second one
+is the habit that matters, and the one we're trying to make automatic.
 
 ---
 
@@ -59,12 +58,9 @@ The most convincing thing for the pitch is *using* it. Add it to your MCP config
 | `src/` | the MCP server (the product) |
 | `bench/` | accuracy-audited benchmark harness + measured results |
 | `docs/` | vision, research, infra, demo plan — **[start here](docs/README.md)** |
-| `vendor/` | upstream tools we build on (git submodules, MIT/Apache-2.0) |
 
-> **Branch note:** `main` has the v0 core (tools: `search_structure`, `find_concept`, `retrieve`,
-> `run_command`). **PR #1** (`feat/eco-mcp-gateway-v0`) adds the **CCI Context Pack** tools
-> (`repo_map`, `get_context`, `update_context`) + the GitHub Models benchmark provider. Merge PR #1
-> (or `git checkout feat/eco-mcp-gateway-v0`) to get the full 7-tool set.
+> **Tool surface:** `main` ships exactly two tools — `get_context` and `update_context`.
+> `test/client.ts` asserts that list exactly, so a tool cannot reappear unnoticed.
 
 ---
 
@@ -72,13 +68,20 @@ The most convincing thing for the pitch is *using* it. Add it to your MCP config
 
 Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan.md)):
 
-- **Burn-rate meter + cost dashboard** — the visible "$X → $Y" ROI view for the pitch (Pillar 0/1).
-- **Model routing layer** — cheap-first, escalate on repeated failure (Pillar 4).
-- **ast-grep tool** — AST search *and rewrite*, a real grep-replacement the agent can edit with.
+**Product (CCI write side):**
+- **Make the write automatic** — a Stop hook + a skill, so the agent doesn't have to remember to
+  call `update_context`. The single highest-value item.
+- **Write nested `AGENTS.md`** instead of `.context/domain_logic.md`, so agents that already read
+  nested memory files pick the knowledge up with no MCP call at all.
+- **Cap and summarize Context Packs** so the living docs don't bloat over sprints (the one open
+  question in [`docs/vision/vision.md`](docs/vision/vision.md) that survived the scope change).
+
+**Research (`bench/`):**
 - **Live benchmark runs** — measure caching + premium-vs-cheap routing (needs an Anthropic key or a
   GitHub Models PAT; see `bench/README.md`).
-- **Demo materials** — slides + a recorded baseline-vs-eco-mcp side-by-side.
-- **CCI polish** — Context Pack UX, an aider-style PageRank repo-map.
+- **Re-measure retrieval like-for-like** — the ~97% / 78% figures are under revision; see Known
+  issues in [`README.md`](README.md).
+- **Jev rerank** — run the adaptive-k experiment against the live API; it has no result yet.
 
 ---
 
@@ -88,8 +91,9 @@ Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan
 - **Commits:** conventional prefix (`feat:`, `fix:`, `docs:`, `chore:`). If AI-assisted, keep the
   `Co-Authored-By:` trailer.
 - **Measure, don't assume — our core principle.** An adversarial audit found that the popular claim
-  "semantic search saves ~98% tokens" is **false** here (naive top-k loses to scoped grep; the win
-  is *structural* retrieval, ~97%). **Never put an unverified number in the pitch.** Label every
+  "semantic search saves ~98% tokens" is **false** here (naive top-k loses to scoped grep). The
+  structural ~97% that replaced it is **itself under revision** — the two baselines were asked
+  different questions. **Never put an unverified number in the pitch.** Label every
   claim **measured / derived / cited** (see [`docs/research/benchmark-results.md`](docs/research/benchmark-results.md)).
 - **Secrets — never commit keys.** `.env` (repo root) holds `GEMINI_API_KEY` / `GITHUB_MODELS_TOKEN`
   and is **gitignored**. The harness auto-loads it. Don't paste keys into code, docs, or commits.
@@ -102,7 +106,7 @@ Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan
 
 | Command | What |
 |---------|------|
-| `bun run test:client` | end-to-end: spawn server, exercise all tools |
+| `bun run test:client` | end-to-end: spawn server, assert the tool list, CCI round-trip |
 | `cd bench && bun run smoke` | offline harness sanity (no key) |
 | `cd bench && bun run src/microbench.ts` | deterministic lever numbers (no key) |
 | `cd bench && bun run bench` | full ablation (needs an LLM key in `.env`) |
@@ -112,11 +116,12 @@ Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan
 
 ## 7. Numbers safe to cite in the pitch (honest, measured)
 
-- **Structural retrieval (codebase-memory): ~97% fewer tokens** vs reading whole files.
-- **Test-output compression: ~51%.**
 - **A cheap model (Gemini Flash) completed 3/3 real coding tasks** (incl. a multi-turn bug fix), sub-cent each.
-- ⚠️ **Don't** claim semantic-search 98% (disproven), and don't show cross-provider caching deltas
-  (billing artifact). Routing + caching dollar savings are *derived* until measured with a paid key.
+- **Test-output compression: ~51%** — measured, though the tool that used it is gone.
+- ⚠️ **Don't** claim semantic-search 98% (disproven). ⚠️ **Don't** cite structural ~97% / 78%
+  either until the like-for-like re-measurement lands (Known issues in [`README.md`](README.md)).
+  Don't show cross-provider caching deltas (billing artifact); routing + caching dollar savings
+  are *derived* until measured with a paid key.
 
 ---
 

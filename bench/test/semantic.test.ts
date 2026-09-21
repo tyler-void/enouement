@@ -1,9 +1,9 @@
-// Offline tests for semble output parsing (no model download: uses test/fixtures/fake-semble.ts).
-// Run: bun test ./test/semantic.test.ts
+// Offline tests for semble output parsing (no model download: uses fixtures/fake-semble.ts).
+// Run: cd bench && bun run test
 
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { parseSembleResults, Semantic } from "../src/backends/semantic";
+import { parseSembleResults, Semantic } from "../src/experiments/jev-rerank/semantic";
 
 describe("semble output parsing", () => {
   const flat = JSON.stringify({
