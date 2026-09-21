@@ -71,6 +71,11 @@ An adversarial 5-lens audit forced corrections; the **honest** numbers:
   caught and fixed. The pitch differentiator is "we measured it instead of assuming it."
 
 ## PRODUCT v0 shipped (2026-06-09) — the thing to show
+
+> Superseded 2026-09-21 — a record of what v0 shipped, not what exists. `find_concept` and
+> `run_command` were removed 2026-07-28 for returning wrong output; `search_structure`,
+> `retrieve` and `repo_map` on 2026-09-21 with the scope change. The server ships
+> `get_context` and `update_context`.
 A working **MCP server** (`src/server.ts`, installable in Cursor/Claude Code) — not slides:
 - `search_structure` (codebase-memory graph, the 97% winner), `find_concept`, `retrieve` (tuned
   semble), `run_command` (failures-only compression). Verified via `bun run test:client`.
@@ -78,6 +83,10 @@ A working **MCP server** (`src/server.ts`, installable in Cursor/Claude Code) �
 - Not yet: cache-aware egress + burn-rate meter, model routing, CCI/Context Packs.
 
 ## Next
+
+> Superseded 2026-09-21 — this list is the gateway roadmap. The current one is in
+> [vision.md](vision.md) under Current scope.
+
 1. Demo: install eco-mcp in Cursor on a real repo, show search_structure replacing grep+read live.
 2. Build CCI/Context Packs (aider-style PageRank repo-map) — the differentiator pillar.
 3. Add ast-grep (AST search+rewrite) as a tool; cache-aware egress + burn-rate meter.
