@@ -60,6 +60,17 @@ superseded with no replacement).
   5) is P4 and PR flags (request story 4) is P5, because a coverage gap loses knowledge for good
   while a late flag only delays a fix. Each story is labelled with its original number.
 
+**Clarification session 2026-09-21** — five clarifications supplied directly by the author and
+encoded into the spec (see `## Clarifications` in spec.md). One resolved a genuine internal
+contradiction this checklist had missed: FR-005 forbade creating a record for an
+inconsequential change while FR-015 flagged any module changed without one, so a routine change
+raised a flag that could never clear. FR-030's recorded no-knowledge statement closes it. The
+spec grew from 28 to 33 requirements (FR-001a, FR-029…FR-032) and from 10 to 11 success criteria
+(SC-011, determinism), and "Decision" was broadened to "Knowledge record" throughout.
+
+Numeric targets were deliberately *not* set: the session fixed the reporting rules — every
+percentage carries its denominator N — rather than the thresholds, which remain provisional.
+
 **Resolved by documented default, not by asking** (max 3 markers were allowed; these did not earn
 a slot): what qualifies as a decision worth recording, review-before-landing, advisory vs blocking
 flags in v1, how supersession is established, and retention of superseded records. All appear in
