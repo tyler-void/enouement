@@ -20,7 +20,7 @@ jump in.
 `gh` CLI (for PRs). Linux/macOS.
 
 ```bash
-git clone https://github.com/tyler-void/eco-mcp
+git clone https://github.com/tyler-void/enouement
 cd eco-mcp
 
 # install deps
