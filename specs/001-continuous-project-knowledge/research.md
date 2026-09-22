@@ -280,7 +280,7 @@ resulting JavaScript type. Re-run of a check first made on 1.3.13; the failures 
 | `mode: 0755` | number `755` | same class |
 | `summary: #42 fixed` | `null` | **silent total loss** — `#` opens a comment |
 | `summary: why this: matters` | parse error | loud, but summaries are free text and will contain `": "` |
-| `commits: 7c000ac` | string | safe only because a letter is present |
+| `commits: b4563b3` | string | safe only because a letter is present |
 | `date: 2026-09-21` | string | safe on 1.4.0; was a concern on earlier versions |
 | all of the above, double-quoted | string, verbatim | safe |
 

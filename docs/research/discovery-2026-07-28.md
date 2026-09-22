@@ -2,7 +2,7 @@
 
 # eco-mcp — discovery pass for repositioning
 
-**Date:** 2026-07-28 · **Branch:** `feat/eco-mcp-gateway-v0` @ `758d22c` · **Mode:** read-only, no code modified.
+**Date:** 2026-07-28 · **Branch:** `feat/eco-mcp-gateway-v0` @ `4499754` · **Mode:** read-only, no code modified.
 **Frame:** the reader is a developer running Claude Opus 5 on a flat-rate Max subscription inside
 Claude Code. Token cost ≈ irrelevant. Native Grep/Glob/Read are strong. The only question that
 matters is *"would this developer call this tool instead of the native one, and why."*

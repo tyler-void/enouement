@@ -34,7 +34,7 @@ enou record \
   --paths src/server.ts,src/backends/ \
   --rejected "keep the gateway and re-measure it" \
   --spec specs/001-continuous-project-knowledge/spec.md \
-  --commit 7c000ac
+  --commit b4563b3
 ```
 
 Writes `.knowledge/records/01JBQ7K3M2N8P4R6T9V0W1X2Y3.md`. You review it in the PR diff like any
@@ -53,15 +53,15 @@ src/server.ts — 3 records
 
 01JAX…  2026-06-09  decision   [superseded by 01JBQ7…]
         gateway wraps retrieval backends behind one tool surface
-        spec: SPEC.md · commits: 24cf7b3
+        spec: SPEC.md · commits: 6a77457
 
 01JB2…  2026-07-28  gotcha
         codebase-memory-mcp 0.7.0 ignores semantic_query and returns the whole symbol table
-        commits: 52d5957
+        commits: 569da42
 
 01JBQ7… 2026-09-21  decision
         retrieval tools removed; the wrapped tools ship their own MCP servers now
-        spec: specs/001-continuous-project-knowledge/spec.md · commits: 7c000ac
+        spec: specs/001-continuous-project-knowledge/spec.md · commits: b4563b3
         supersedes 01JAX…
 ```
 

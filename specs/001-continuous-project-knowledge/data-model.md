@@ -31,7 +31,7 @@ paths:
   - src/backends/
 spec: specs/001-continuous-project-knowledge/spec.md
 commits:
-  - 7c000ac
+  - b4563b3
 supersedes: 01JBQ5H1F0C7B3A9Z8Y7X6W5V4
 rejected:
   - kept the gateway and re-measured it — the wrapped tools now ship their own MCP servers

@@ -57,7 +57,7 @@ Sections removed: none.
 Derived from existing repo practice rather than invented:
   I   ← CONTRIBUTING.md §5 ("Measure, don't assume — our core principle") and §7; the corrected
         benchmark in docs/research/benchmark-results.md
-  II  ← the 2026-07-28 removal of find_concept and run_command (52d5957) and its reasoning in
+  II  ← the 2026-07-28 removal of find_concept and run_command (569da42) and its reasoning in
         docs/research/discovery-2026-07-28.md §6.1/§6.2
   III ← docs/vision/vision.md (CCI); specs/001-continuous-project-knowledge FR-019…FR-022
   IV  ← the 2026-09-21 practice of marking SPEC.md, vision.md and demo-plan.md superseded rather
