@@ -49,5 +49,9 @@ repository had to be deleted and its history rewritten because contest and compa
 already been published; the hook exists so that does not happen twice. A block is the guard
 working, not an obstacle to route around.
 
+**Never override `core.hooksPath` either** — not with `git -c core.hooksPath=…` for one command,
+and not with `git config core.hooksPath`. Pointing it at an empty directory disables the guard
+just as completely as `--no-verify`, and leaves no flag in the command to notice.
+
 If a block looks like a false positive, say so and show the matching lines. Widening the rule is
 a decision for the repository owner, not something to infer from a failed push.
