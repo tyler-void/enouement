@@ -35,3 +35,19 @@ ignore rule existed on a different branch.
 This matters more than tidiness in this repository, which is public and has a local pre-push
 guard (`.git/hooks/pre-push`) precisely because private material must never reach it. Naming
 paths is how you stay certain of what you are publishing.
+
+## Pushing
+
+**Never use `--no-verify`.** Not on `git push`, not on `git commit`.
+
+A push blocked by the pre-push hook means **stop and report**. Do not work around it, do not
+retry with the check disabled, and do not edit the term list to make the block go away.
+
+The hook (`.git/hooks/pre-push`, with `.git/info/forbidden-terms`) is the last thing standing
+between this public repository and material that must never reach it. On 2026-09-22 this
+repository had to be deleted and its history rewritten because contest and company names had
+already been published; the hook exists so that does not happen twice. A block is the guard
+working, not an obstacle to route around.
+
+If a block looks like a false positive, say so and show the matching lines. Widening the rule is
+a decision for the repository owner, not something to infer from a failed push.
