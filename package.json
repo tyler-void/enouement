@@ -2,6 +2,7 @@
   "name": "eco-mcp",
   "version": "0.1.0",
   "type": "module",
+  "license": "Apache-2.0",
   "description": "Eco-MCP — project memory for AI coding agents over MCP: read and write per-module Context Packs (.context/*.md) that live in the repo and go through code review.",
   "bin": { "eco-mcp": "src/server.ts" },
   "scripts": {
