@@ -55,3 +55,15 @@ just as completely as `--no-verify`, and leaves no flag in the command to notice
 
 If a block looks like a false positive, say so and show the matching lines. Widening the rule is
 a decision for the repository owner, not something to infer from a failed push.
+
+## Owner privacy
+
+The owner does not publish his legal name. Refer to him as **Tyler** or **@tyler-void**, nothing else.
+
+This applies everywhere, not just to prose in the repository: file contents, commit messages,
+branch names, issue and pull-request titles and bodies, code comments, and test fixtures. Email
+addresses are fine — `code@tyler-void.dev` is already public in the git history.
+
+`.git/info/forbidden-terms` carries the name forms, so the pre-push hook will block a push that
+reintroduces one. Treat a block on that term the way you would any other: stop and report. Do not
+remove the term to get the push through.

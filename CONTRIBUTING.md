@@ -127,5 +127,5 @@ Pick a workstream (roadmap in [`docs/vision/demo-plan.md`](docs/vision/demo-plan
 
 ## 8. Questions?
 
-Ping Tyler. Then read [`docs/vision/vision.md`](docs/vision/vision.md) (the north star) and
+Ping Tyler (@tyler-void). Then read [`docs/vision/vision.md`](docs/vision/vision.md) (the north star) and
 [`docs/vision/demo-plan.md`](docs/vision/demo-plan.md) (what we show the judges).
