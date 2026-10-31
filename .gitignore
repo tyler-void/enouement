@@ -18,3 +18,6 @@ before.md
 
 # spec-kit extension catalog cache — refetched on demand, not ours to version
 .specify/extensions/.cache/
+
+# agent worktrees (parallel work in progress) — never part of the repository
+.claude/worktrees/
