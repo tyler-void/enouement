@@ -309,7 +309,10 @@ export function whySymbol(
  */
 export function isPathQuestion(root: string, trust: TrustView, modules: ModulesConfig, path: string, noGit = false): boolean {
   if (path === "." || existsSync(join(root, path))) return true;
-  for (const k of trust.records.values()) if (k.front.paths.some((p) => relates(p, path) && staticPrefix(p) !== "")) return true;
+  // Drafts count here: a path only a draft mentions is still a path question (the answer then says
+  // no record exists yet and a draft is waiting), not an unknown symbol.
+  for (const k of [...trust.records.values(), ...trust.drafts.values()])
+    if (k.front.paths.some((p) => relates(p, path) && staticPrefix(p) !== "")) return true;
   if (modules.modules.some((m) => m.formerly.some((f) => patternCovers(f, path)))) return true;
   if (noGit) return false;
   const r = git(["log", "--all", "-1", "--format=%H", "--", path], root);

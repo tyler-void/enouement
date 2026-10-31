@@ -207,3 +207,14 @@ describe("end to end", () => {
     void BODY;
   });
 });
+
+describe("a path only a draft mentions", () => {
+  test("is a path question: no records yet, one draft waiting — not an unknown symbol", async () => {
+    const root = tempRoot();
+    putRecord(root, "inbox", front({ id: IDS.a, paths: ["src/not-written-yet.ts"] }));
+    const r = await enou(root, ["why", "src/not-written-yet.ts"]);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("no recorded knowledge");
+    expect(r.out).toContain("1 draft about this path is waiting");
+  });
+});
