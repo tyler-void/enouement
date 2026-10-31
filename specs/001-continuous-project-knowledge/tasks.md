@@ -3,8 +3,9 @@
 **Feature**: `001-continuous-project-knowledge` | **Plan**: [plan.md](plan.md) | **Spec**: [spec.md](spec.md)
 **Generated**: 2026-09-21 · **Amended**: 2026-10-31 (drafts and acceptance, symbols, `brief`,
 one command definition, read-hook fixes, measured recall — spec.md, Session 2026-10-31) ·
-**Nothing in this file has been implemented.** Tasks added by the amendment carry a letter suffix
-so that no existing task number changes meaning.
+**Phases 1 and 2 (T001–T018) are implemented** (2026-10-31): the foundation gate is closed. Nothing
+after T018 has been implemented. Tasks added by the amendment carry a letter suffix so that no
+existing task number changes meaning.
 
 Tests are included because plan.md lists 23 of them as mandatory (14 original + 9 added 2026-10-31), each tied to a failure that is
 silent without it.
@@ -41,13 +42,13 @@ not by the order they happen to be written in. Prose ordering is advice; a depen
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the directory skeleton `src/knowledge/` and `src/cli/` per plan.md
-- [ ] T002 Add an `enou` bin entry to `package.json` pointing at `src/cli/main.ts`, **keeping the existing `eco-mcp` bin** (legacy ids wait for spec 002 — research.md §7)
-- [ ] T003 [P] Add `test:knowledge` script to `package.json` running the new suites by explicit path (a bare `bun test` walks into `bench/fixtures/`)
-- [ ] T004 [P] Create `.knowledge/records/.gitkeep`, **`.knowledge/inbox/.gitkeep`**, and `.knowledge/modules.yaml` declaring this repo's own modules, with `defaults.view` limits; add `.knowledge/** text eol=lf` to `.gitattributes` (data-model §2.8 rule 7)
-- [ ] T004a [P] Implement `src/cli/commands.ts` — **one declaration per command** (name, args, types, enums, ranges, repeatable) from which the CLI flag parser and the MCP input schema are both produced; unknown arguments are an error on both surfaces (contracts/cli.md, One definition per command). Plain data: the MCP layer translates it into its existing schema library, so no new dependency
-- [ ] T004b [P] Implement `src/cli/root.ts` — repository root discovery: `ENOU_ROOT`, else nearest ancestor with `.knowledge/`, else git top level; path arguments relative to the current directory, expressed repository-relative
-- [ ] T004c Wire exit codes in `src/cli/main.ts`: 0 / 1 refused / 2 lint findings / **3 internal error**, with every command catching its own failures; stack traces only under `ENOU_DEBUG`. Depends on: T004a
+- [x] T001 Create the directory skeleton `src/knowledge/` and `src/cli/` per plan.md
+- [x] T002 Add an `enou` bin entry to `package.json` pointing at `src/cli/main.ts`, **keeping the existing `eco-mcp` bin** (legacy ids wait for spec 002 — research.md §7)
+- [x] T003 [P] Add `test:knowledge` script to `package.json` running the new suites by explicit path (a bare `bun test` walks into `bench/fixtures/`)
+- [x] T004 [P] Create `.knowledge/records/.gitkeep`, **`.knowledge/inbox/.gitkeep`**, and `.knowledge/modules.yaml` declaring this repo's own modules, with `defaults.view` limits; add `.knowledge/** text eol=lf` to `.gitattributes` (data-model §2.8 rule 7)
+- [x] T004a [P] Implement `src/cli/commands.ts` — **one declaration per command** (name, args, types, enums, ranges, repeatable) from which the CLI flag parser and the MCP input schema are both produced; unknown arguments are an error on both surfaces (contracts/cli.md, One definition per command). Plain data: the MCP layer translates it into its existing schema library, so no new dependency
+- [x] T004b [P] Implement `src/cli/root.ts` — repository root discovery: `ENOU_ROOT`, else nearest ancestor with `.knowledge/`, else git top level; path arguments relative to the current directory, expressed repository-relative
+- [x] T004c Wire exit codes in `src/cli/main.ts`: 0 / 1 refused / 2 lint findings / **3 internal error**, with every command catching its own failures; stack traces only under `ENOU_DEBUG`. Depends on: T004a
 
 ---
 
@@ -58,28 +59,28 @@ before the canonical writer exists can never be corrected: FR-034 makes records 
 non-canonical record could only be superseded, never rewritten. There is no migration path, which
 is why this is a gate and not a recommendation.
 
-- [ ] T005 Implement `src/knowledge/platform.ts` — the **only** file permitted to touch `Bun.*` (`Bun.YAML`, `Bun.Glob`, `Bun.$`, `Bun.file`); everything else imports from here (plan.md platform seam)
-- [ ] T006 [P] Implement `src/knowledge/id.ts` — **monotonic** ULID, 26 chars, 48-bit timestamp + 80-bit randomness, random component incremented within a shared millisecond. Depends on: T005
-- [ ] T007 [P] Implement `src/knowledge/secrets.ts` — deterministic offline regex patterns (private-key headers, AWS-style key ids, bearer/authorization assignments, `*_API_KEY=`). No model, no network, no entropy heuristic
-- [ ] T008 Implement `src/knowledge/record.ts` — canonical writer/parser. **Double-quote every string scalar**; validate types after parsing (`commits` hex strings, `date` a `YYYY-MM-DD` string). Depends on: T005, T006
-- [ ] T008a Extend `record.ts`: normalise `paths` and the path part of `symbols` (refuse, never repair); validate `symbols` as `<path>#<name>`; **re-parse the serialised bytes and require field-for-field equality before anything is put in place**; write via temp file + rename; LF, no BOM; every refusal as `{field, message}` (data-model §2.8 rules 5–7, §3 rules 14–15). Depends on: T008
-- [ ] T009 Implement `src/knowledge/store.ts` — flat stores over `.knowledge/records/<ULID>.md` **and `.knowledge/inbox/<ULID>.md`**; list, read, write a draft. **Never mutates a record.** Reads the store once per command and hands the in-memory set down. Depends on: T008a
-- [ ] T009a Implement `src/knowledge/trust.ts` — **the one predicate** for "counts as knowledge": in `records/`, parses, validates. Supersession is computed from records only, never drafts. Every read path and the supersession computation call this and nothing else (data-model §2.2). Depends on: T009
-- [ ] T010 Implement `src/knowledge/modules.ts` — declarations, `formerly` globs, per-module `view` overrides, total order-independent resolution (current `path` beats another module's `formerly`; ties by declaration order). Depends on: T005
-- [ ] T011 Implement `src/knowledge/lint.ts` round-trip + immutability checks only: parse → re-serialise byte-identical, and an existing record file changed by anything other than a conforming redaction; plus **the same ULID present in both `inbox/` and `records/`** (data-model §1). Reads the store once — linear, never a per-file re-read. Depends on: T008, T009
+- [x] T005 Implement `src/knowledge/platform.ts` — the **only** file permitted to touch `Bun.*` (`Bun.YAML`, `Bun.Glob`, `Bun.$`, `Bun.file`); everything else imports from here (plan.md platform seam)
+- [x] T006 [P] Implement `src/knowledge/id.ts` — **monotonic** ULID, 26 chars, 48-bit timestamp + 80-bit randomness, random component incremented within a shared millisecond. Depends on: T005
+- [x] T007 [P] Implement `src/knowledge/secrets.ts` — deterministic offline regex patterns (private-key headers, AWS-style key ids, bearer/authorization assignments, `*_API_KEY=`). No model, no network, no entropy heuristic
+- [x] T008 Implement `src/knowledge/record.ts` — canonical writer/parser. **Double-quote every string scalar**; validate types after parsing (`commits` hex strings, `date` a `YYYY-MM-DD` string). Depends on: T005, T006
+- [x] T008a Extend `record.ts`: normalise `paths` and the path part of `symbols` (refuse, never repair); validate `symbols` as `<path>#<name>`; **re-parse the serialised bytes and require field-for-field equality before anything is put in place**; write via temp file + rename; LF, no BOM; every refusal as `{field, message}` (data-model §2.8 rules 5–7, §3 rules 14–15). Depends on: T008
+- [x] T009 Implement `src/knowledge/store.ts` — flat stores over `.knowledge/records/<ULID>.md` **and `.knowledge/inbox/<ULID>.md`**; list, read, write a draft. **Never mutates a record.** Reads the store once per command and hands the in-memory set down. Depends on: T008a
+- [x] T009a Implement `src/knowledge/trust.ts` — **the one predicate** for "counts as knowledge": in `records/`, parses, validates. Supersession is computed from records only, never drafts. Every read path and the supersession computation call this and nothing else (data-model §2.2). Depends on: T009
+- [x] T010 Implement `src/knowledge/modules.ts` — declarations, `formerly` globs, per-module `view` overrides, total order-independent resolution (current `path` beats another module's `formerly`; ties by declaration order). Depends on: T005
+- [x] T011 Implement `src/knowledge/lint.ts` round-trip + immutability checks only: parse → re-serialise byte-identical, and an existing record file changed by anything other than a conforming redaction; plus **the same ULID present in both `inbox/` and `records/`** (data-model §1). Reads the store once — linear, never a per-file re-read. Depends on: T008, T009
 
 ### Foundational tests (mandatory)
 
-- [ ] T012 [P] Test (plan #8): ULID lexicographic sort equals chronological; monotonic within one millisecond; **and ordering across deliberately skewed clocks is NOT relied on** in `test/id.test.ts`. Depends on: T006
-- [ ] T013 [P] Test (plan #5): canonical writer double-quotes every string scalar; `parse → re-serialise` byte-identical in `test/record.test.ts`. Depends on: T008
-- [ ] T014 [P] Test (plan #5a): **SHA fixtures.** All-digit `0123456` must round-trip as a string (unquoted it becomes `123456`); exponent-form `6e40653` and `9e99999` must round-trip (unquoted they become `Infinity`, serialising back as `null`); `1e10` and `0e12345` must round-trip. 5.59% of 7-char SHAs are affected. In `test/record.test.ts`. Depends on: T008
-- [ ] T015 [P] Test (plan #6): type validation rejects a numeric `commits` entry and a non-`YYYY-MM-DD` `date`; never coerces. Depends on: T008
-- [ ] T016 [P] Test (plan #13): **no file outside `src/knowledge/platform.ts` references a `Bun.*` global** — a source scan, not a review convention, in `test/platform-seam.test.ts`. Depends on: T005
-- [ ] T017 [P] Test (plan #7): a record that fails to parse fails `lint` and is **reported**, never silently skipped. Depends on: T011
-- [ ] T017a [P] Test: a value that validates as an object but serialises to unparseable bytes (a lone UTF-16 surrogate in a summary) is refused **before** any file is written; a path with `..`, an absolute path and a malformed symbol are refused with `{field, message}`. Depends on: T008a
-- [ ] T017b [P] Test: `trust.ts` is the only module that decides knowledge — a draft beside every record is invisible to it, and a draft naming a record in `supersedes` leaves that record current. Depends on: T009a
+- [x] T012 [P] Test (plan #8): ULID lexicographic sort equals chronological; monotonic within one millisecond; **and ordering across deliberately skewed clocks is NOT relied on** in `test/id.test.ts`. Depends on: T006
+- [x] T013 [P] Test (plan #5): canonical writer double-quotes every string scalar; `parse → re-serialise` byte-identical in `test/record.test.ts`. Depends on: T008
+- [x] T014 [P] Test (plan #5a): **SHA fixtures.** All-digit `0123456` must round-trip as a string (unquoted it becomes `123456`); exponent-form `6e40653` and `9e99999` must round-trip (unquoted they become `Infinity`, serialising back as `null`); `1e10` and `0e12345` must round-trip. 5.59% of 7-char SHAs are affected. In `test/record.test.ts`. Depends on: T008
+- [x] T015 [P] Test (plan #6): type validation rejects a numeric `commits` entry and a non-`YYYY-MM-DD` `date`; never coerces. Depends on: T008
+- [x] T016 [P] Test (plan #13): **no file outside `src/knowledge/platform.ts` references a `Bun.*` global** — a source scan, not a review convention, in `test/platform-seam.test.ts`. Depends on: T005
+- [x] T017 [P] Test (plan #7): a record that fails to parse fails `lint` and is **reported**, never silently skipped. Depends on: T011
+- [x] T017a [P] Test: a value that validates as an object but serialises to unparseable bytes (a lone UTF-16 surrogate in a summary) is refused **before** any file is written; a path with `..`, an absolute path and a malformed symbol are refused with `{field, message}`. Depends on: T008a
+- [x] T017b [P] Test: `trust.ts` is the only module that decides knowledge — a draft beside every record is invisible to it, and a draft naming a record in `supersedes` leaves that record current. Depends on: T009a
 
-- [ ] **T018 — GATE: foundation complete.** All of T005–T017b pass. **No task numbered above T018 that writes a record or a draft may begin until this gate is closed.** Depends on: T004a, T004b, T004c, T005, T006, T007, T008, T008a, T009, T009a, T010, T011, T012, T013, T014, T015, T016, T017, T017a, T017b
+- [x] **T018 — GATE: foundation complete.** All of T005–T017b pass. **No task numbered above T018 that writes a record or a draft may begin until this gate is closed.** Depends on: T004a, T004b, T004c, T005, T006, T007, T008, T008a, T009, T009a, T010, T011, T012, T013, T014, T015, T016, T017, T017a, T017b
 
 ---
 

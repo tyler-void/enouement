@@ -10,8 +10,10 @@ Read this before trying to use it:
 
 - **Spec 001 (continuous project knowledge) is in progress**, on the
   [`001-continuous-project-knowledge`](https://github.com/tyler-void/enouement/tree/001-continuous-project-knowledge)
-  branch. Specification, plan, contracts and research are written; **no implementation has
-  started**.
+  branch. Specification, plan, contracts and research are written. **Only the foundation is
+  implemented**: the record format and canonical writer, the record and draft stores, the trust
+  check, module declarations, the secret scan, and `enou lint`. Capturing, accepting and asking
+  `why` are not built yet.
 - **What is on `main` today** is the earlier work: a small MCP server with two tools
   (`get_context`, `update_context`) and the benchmark harness in `bench/`. It runs, and it is not
   what the name above describes yet.
