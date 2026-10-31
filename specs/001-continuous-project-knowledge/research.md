@@ -368,6 +368,31 @@ extrapolate from, and recorded so no one mistakes it for a result.
 | `brief` latency over many paths | it runs `why` per path plus module views; it must stay usable from a spec-kit hook | **T055h**, once `brief` exists |
 | Whether any CPU-only embedding setup gives identical top-k across x86 and ARM | the precondition for even studying a dense arm under FR-032 (§14) | Only if §14's study is ever run |
 
+### `brief` latency — **measured 2026-10-31 (T055h)**
+
+**Method**: `bench/src/knowledge/brief-latency.ts` builds a synthetic repository in a temp directory —
+10 000 records (five per source file) over 20 declared modules and 2 000 source files, all committed
+to git — and times `enou brief` in-process through the CLI's own `main()` (store load, module
+resolution, git rename history, `Knowledge-Record:` trailers, implementing commits; process start-up
+excluded). One warm-up run discarded, 15 timed runs per size; with 15 runs, p95 is close to the
+maximum. A second pass runs the same brief with git skipped, to attribute the cost.
+**Machine**: Intel Core i7-11800H × 16, Linux 7.2.9, Bun 1.4.2.
+
+| Paths | `enou brief` p50 / p95 | git skipped p50 / p95 |
+|---|---|---|
+| 1 | 224 / 241 ms | 186 / 206 ms |
+| 10 | 640 / 804 ms | 442 / 523 ms |
+| 100 | 4 460 / 5 980 ms | 1 149 / 1 325 ms |
+
+**Reading**: one path is dominated by loading the store — consistent with §3's 153 ms scan at 10⁴. The
+growth with path count is the per-path work: `whyPath` rebuilds the trust view for every path and
+spawns git per path (rename history, trailers) and per matched record (implementing commit), which
+is about three quarters of the cost at 100 paths. A brief over the handful of paths a feature
+touches stays under a second; one over 100 paths does not. **Not yet done**, and the measured next
+steps if it matters: build the trust view once per brief rather than once per path, and resolve
+implementing commits for all matched records with one `git log --diff-filter=A --name-only` over
+`.knowledge/` instead of one call per record. Re-run this harness to measure either.
+
 ## 12. The accept gate — **decision, 2026-10-31**
 
 **What changed.** §1 recorded that all three prior-art projects put a human accept step between
