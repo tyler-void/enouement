@@ -5,7 +5,7 @@
 // a removal reports how many records it un-covers (FR-039) — and so does `lint`, because the file is
 // often edited by hand.
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkRepoPath } from "../knowledge/record";
 import { MODULES_FILE, parseModules, resolveModule, type ModuleDecl, type ModulesConfig } from "../knowledge/modules";
@@ -86,6 +86,7 @@ function save(ctx: Ctx, config: ModulesConfig): void {
   const text = emit(header, config);
   const check = parseModules(text);
   if (!check.ok) throw new Error(`refusing to write a modules.yaml that does not parse back: ${JSON.stringify(check.issues)}`);
+  mkdirSync(join(ctx.root, ".knowledge"), { recursive: true }); // first declaration in a fresh repo
   const tmp = `${file}.tmp-${process.pid}`;
   writeFileSync(tmp, text, "utf8");
   renameSync(tmp, file);

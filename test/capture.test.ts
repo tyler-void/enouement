@@ -265,3 +265,13 @@ describe("enou modules (T023)", () => {
     expect(existsSync(join(root, ".knowledge/modules.yaml"))).toBe(true);
   });
 });
+
+describe("enou modules add in a repository with no .knowledge/ yet", () => {
+  test("creates the store directory instead of failing", async () => {
+    const root = tempRoot(false);
+    gitInit(root);
+    const r = await enou(root, ["modules", "add", "src"]);
+    expect(r.code).toBe(0);
+    expect(readFileSync(join(root, ".knowledge/modules.yaml"), "utf8")).toContain('path: "src"');
+  });
+});
