@@ -25,6 +25,30 @@ git config core.hooksPath .githooks     # local: catches work that never opens a
 enou modules uncovered
 ```
 
+## Personal install (manual) — T056
+
+`enou init` is spec 002; until then a repository is set up by hand, and the enouement skill
+(`.claude/skills/enouement/`) walks an agent through the same steps. The authoritative guide is
+[`.claude/skills/enouement/references/setup.md`](../../.claude/skills/enouement/references/setup.md);
+in short:
+
+- **(a) Put `enou` on PATH**: `bun install && bun link` in a clone of this repository puts `enou`
+  in `~/.bun/bin` (it symlinks the `package.json` bin and runs the `.ts` entry through its shebang).
+- **(b) spec-kit repositories**: `specify extension add <this repo>/.specify/extensions/enouement --dev`,
+  through the CLI — never by hand-editing `.specify/extensions/.registry` (it carries a manifest hash).
+  Then check `after_implement` lists `enouement` before `git` in `.specify/extensions.yml`.
+- **(c) Claude Code hooks**: merge the settings block from the guide into `.claude/settings.json`
+  (or the user-scope `~/.claude/settings.json`). Every hook starts with a POSIX-sh pre-filter, so in
+  a repository without `.knowledge/`, or on a machine without `enou`, it costs one `sh` and prints
+  nothing; no hook makes a network call.
+- **(d) Modules**: `enou modules add <path>` per module; nothing is covered until it is declared.
+- **(e) Deny rules**: the same settings block denies the agent `enou accept`, `enou reject` and
+  `enou redact` — acceptance stays the person's step (FR-044a). The loop is: the agent captures,
+  you run `enou drafts`, read, edit if needed, `enou accept <id>`.
+- **(f) Tools that replace `Read`**: some code-intelligence MCP servers tell the agent to read code
+  through their own tools, which stops the read hook firing. The session-start line still names the
+  modules that have knowledge, and `enou brief` / `enou view` are always the explicit path.
+
 ## Record something
 
 ```bash

@@ -3,8 +3,9 @@
 **Feature**: `001-continuous-project-knowledge` | **Plan**: [plan.md](plan.md) | **Spec**: [spec.md](spec.md)
 **Generated**: 2026-09-21 · **Amended**: 2026-10-31 (drafts and acceptance, symbols, `brief`,
 one command definition, read-hook fixes, measured recall — spec.md, Session 2026-10-31) ·
-**Implemented so far** (2026-10-31): Phases 1 and 2 (T001–T018, the foundation gate is closed), and
-in US1/US2 every task marked [x] below. Tasks added by the amendment carry a letter suffix so that no
+**Implemented** (2026-10-31): every task marked [x]. Still open: the owner-only tasks (T019a/b/c, T040a/b,
+T042, T075–T078 — question sets written outside any agent session), the checkpoints that depend on
+them (T041, T057), T050's latency half, and the polish tasks noted below. Tasks added by the amendment carry a letter suffix so that no
 existing task number changes meaning.
 
 Tests are included because plan.md lists 23 of them as mandatory (14 original + 9 added 2026-10-31), each tied to a failure that is
@@ -123,10 +124,10 @@ hash is.
 - [x] T022 [US1] Implement derived implementing-commit resolution in `src/knowledge/why.ts` — the **oldest** commit from `git log --diff-filter=A -- .knowledge/records/<id>.md .knowledge/inbox/<id>.md` via `platform.ts` (data-model §2.7). Depends on: **T018**
 - [x] T023 [US1] Implement `enou modules list|uncovered` (FR-026). Depends on: **T018**, T010
 - [x] T024 [US1] Implement `enou redact` — explicit only, requires `--reason`, writes `{date, reason, fields}`, prints that the original survives in git history and that a credential must be rotated. Depends on: **T018**
-- [ ] T025 [US1] Create the spec-kit extension at `.specify/extensions/enouement/` with `extension.yml` (**id `enouement`**) declaring `provides.commands` as **markdown command files** — verified from the installed git extension, whose `extension.yml` provides `commands/speckit.git.commit.md`. Spec-kit hooks invoke an **agent command**, not a shell command, so a hook cannot call `enou record` directly
-- [ ] T025a [US1] **Write `commands/speckit.enouement.capture.md` — the capture prompt.** It instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item, supplying kind, a one-line summary, affected paths, declared symbols where one definition is the point, and rejected alternatives for decisions — or, when nothing of consequence was learned, to add a `Knowledge-None:` trailer instead (FR-005, FR-030). It ends by listing the drafts it wrote and telling the person to read them and run `enou accept`; **it never accepts** (FR-044a). **Quality check**: run it against a finished feature in this repository and judge the drafts it produces — are they things a reader would want in a year, or restatements of the diff? A draft that only says what the diff says is a failure of this task, not of the tool. Depends on: T025, T020, T020a
-- [ ] T025b [US1] Write `commands/speckit.enouement.brief.md` for `before_specify`/`before_plan` — in the MVP it runs `enou why` over each path the feature is expected to touch and presents the records before the spec is written (FR-011); T025c upgrades it to `enou brief`. *Renamed from `recall` on 2026-10-31 (contracts/hooks.md §2).* Depends on: T025, T033
-- [ ] T026 [US1] Order `after_implement` so `enouement` runs **before** the git extension's `speckit.git.commit` in `.specify/extensions.yml`. Depends on: T025
+- [x] T025 [US1] Create the spec-kit extension at `.specify/extensions/enouement/` with `extension.yml` (**id `enouement`**) declaring `provides.commands` as **markdown command files** — verified from the installed git extension, whose `extension.yml` provides `commands/speckit.git.commit.md`. Spec-kit hooks invoke an **agent command**, not a shell command, so a hook cannot call `enou record` directly
+- [x] T025a [US1] **Write `commands/speckit.enouement.capture.md` — the capture prompt.** It instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item, supplying kind, a one-line summary, affected paths, declared symbols where one definition is the point, and rejected alternatives for decisions — or, when nothing of consequence was learned, to add a `Knowledge-None:` trailer instead (FR-005, FR-030). It ends by listing the drafts it wrote and telling the person to read them and run `enou accept`; **it never accepts** (FR-044a). **Quality check**: run it against a finished feature in this repository and judge the drafts it produces — are they things a reader would want in a year, or restatements of the diff? A draft that only says what the diff says is a failure of this task, not of the tool. Depends on: T025, T020, T020a
+- [x] T025b [US1] Write `commands/speckit.enouement.brief.md` for `before_specify`/`before_plan` — in the MVP it runs `enou why` over each path the feature is expected to touch and presents the records before the spec is written (FR-011); T025c upgrades it to `enou brief`. *Renamed from `recall` on 2026-10-31 (contracts/hooks.md §2).* Depends on: T025, T033
+- [x] T026 [US1] Order `after_implement` so `enouement` runs **before** the git extension's `speckit.git.commit` in `.specify/extensions.yml`. Depends on: T025
 - [x] T027 [US1] Implement `enou recall` as a stub that **exits 1 with "not implemented"** and returns no results. Depends on: **T018**
 
 ### US1 tests
@@ -135,7 +136,7 @@ hash is.
 - [x] T029 [P] [US1] Test: `record` refuses on missing/over-long summary, on `--kind decision` without `--rejected`, on unknown `--supersedes`, and on missing `--source` for `backfilled`/`oral` — writing nothing each time. Depends on: T020
 - [x] T030 [P] [US1] Test: a seeded corpus of known secret shapes is refused at capture, with the match reported (plan test 5 of SC-012). Depends on: T021
 - [x] T031 [P] [US1] Test (plan #3): the implementing commit resolves after a **squash**, a **rebase** and an **amend** — a stored SHA would not survive these. Depends on: T022
-- [ ] T032 [US1] Test (plan #10): `after_implement` capture runs before the git auto-commit; inverted, every `Knowledge-Record:` trailer points one commit late. Depends on: T026
+- [x] T032 [US1] Test (plan #10): `after_implement` capture runs before the git auto-commit; inverted, every `Knowledge-Record:` trailer points one commit late. Depends on: T026
 - [x] T032a [P] [US1] Test (plan #15): a secret pasted into a draft **after** capture is refused at `accept` with the match reported, and `records/` is unchanged. Depends on: T020a
 - [x] T032b [P] [US1] Test (plan #16): the implementing commit is the **capture** commit when the draft was committed and accepted later — also after squash, rebase and amend — and the **acceptance** commit when the draft was never committed. Depends on: T022, T020a
 - [x] T032c [P] [US1] Test: accepting a draft that supersedes a record already superseded by another accepted record is refused, naming the newer record (FR-046a); `reject` never touches `records/`. Depends on: T020a
@@ -177,41 +178,42 @@ hash is.
 - [ ] T042 [US3] **First dogfood record: the naming decision** (ordering constraint 4). `kind: decision`, `provenance: backfilled` — it documents a choice already made, so `contemporaneous` would misreport what it measures. `source`: the commit that added research.md §7. Content: `enouement` chosen; `eco-mcp`, `cairn`, `eco-harness` rejected with reasons; binary `enou` because the short forms were taken. Written as a draft and accepted unedited (ordering constraint 5). Depends on: **T018**, **T019a**, T020, T020a
 - [x] T043 [US3] Implement `src/knowledge/view.ts` — **current records only: superseded records are excluded entirely** (the view is current truth, not history; `enou log` is where history lives). Selection by kind priority (invariant → gotcha → convention → decision), then ULID descending, top N; grouped by kind on display; overflow line naming the `log` command. Redacted records are **not** excluded — they stay in place rendered as `[redacted]` (T045). Records only, through `trust.ts`. Depends on: **T018**, T009a, T010, T020a
 - [x] T044 [US3] Implement `enou view <module>` and `enou log <module>`; **neither writes a file**. Depends on: T043
-- [ ] T044a [US3] Implement `enou show <ULID>` — one record or draft with its **computed** status and derived implementing commit (contracts/cli.md). Depends on: T043, T022
-- [ ] T044b [US3] Implement `src/knowledge/brief.ts` and `enou brief <path>...` — records per path (deduplicated), module views, gaps `uncovered-path`, `module-without-knowledge`, `drafts-waiting`, and a **complete `checked` list** of the checks that actually ran. `contradiction` and `dangling-reference` join the list in T063a, when US5 provides them — until then they are absent from `checked`, not reported as clean (FR-048). Depends on: T043, T033, T009a
-- [ ] T044c [US3] Replace the MCP surface in `src/server.ts` with the tools of contracts/cli.md (MCP server) — `why`, `view`, `log`, `brief`, `show`, `drafts`, `record` — generated from `commands.ts`; **remove `get_context` and `update_context`**, with the commit message stating why (constitution, Development Workflow); update `test/client.ts` to assert the new list exactly (plan #17). Depends on: T044b, T044a, T020a, T004a
-- [ ] T025c [US3] Upgrade `commands/speckit.enouement.brief.md` from per-path `enou why` to `enou brief`, so the author sees module views and gaps as well as records (FR-011, FR-048). Depends on: T025b, T044b
+- [x] T044a [US3] Implement `enou show <ULID>` — one record or draft with its **computed** status and derived implementing commit (contracts/cli.md). Depends on: T043, T022
+- [x] T044b [US3] Implement `src/knowledge/brief.ts` and `enou brief <path>...` — records per path (deduplicated), module views, gaps `uncovered-path`, `module-without-knowledge`, `drafts-waiting`, and a **complete `checked` list** of the checks that actually ran. `contradiction` and `dangling-reference` join the list in T063a, when US5 provides them — until then they are absent from `checked`, not reported as clean (FR-048). Depends on: T043, T033, T009a
+- [x] T044c [US3] Replace the MCP surface in `src/server.ts` with the tools of contracts/cli.md (MCP server) — `why`, `view`, `log`, `brief`, `show`, `drafts`, `record` — generated from `commands.ts`; **remove `get_context` and `update_context`**, with the commit message stating why (constitution, Development Workflow); update `test/client.ts` to assert the new list exactly (plan #17). Depends on: T044b, T044a, T020a, T004a
+- [x] T025c [US3] Upgrade `commands/speckit.enouement.brief.md` from per-path `enou why` to `enou brief`, so the author sees module views and gaps as well as records (FR-011, FR-048). Depends on: T025b, T044b
 - [x] T045 [US3] Render a redacted summary as `[redacted]` with the identifier intact, keeping its place in the view (FR-027d). Depends on: T043
-- [ ] T046 [US3] Gate: T000 returned **"surfaces"** on 2.1.270, so this phase may proceed. **Re-run the probe before building the hook** — the behaviour is undocumented for `PostToolUse` and can change without a changelog entry. If a re-run returns "does not" or "transcript-only", stop; the delivery mechanism needs redesigning and that is not a task to improvise. Depends on: T000
-- [ ] T047 [US3] Write the **tier-1 POSIX-sh pre-filter** as the hook `command` — no `args` field, or it becomes exec form and bypasses the shell. Depends on: T046
-- [ ] T048 [US3] Implement `enou hook post-read` — tier-2 checks in fixed order: module membership, then per-session dedup, then records. Opens **no record file** on a miss. Dedup is a **marker file outside the repository** at `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session_id>/<module-id>`, keyed by the `session_id` from the hook's stdin JSON, and **claimed by exclusive create (`O_EXCL`/`"wx"`)** — the create is the lock, because Claude Code issues parallel Reads and a check-then-write would let both inject. In-memory state is impossible here: every hook invocation is a fresh process. Depends on: T044, T047
-- [ ] T048a [US3] Add a `SessionStart` hook matching source **`compact`** that clears that session's marker directory. Without it the injected view is dropped by compaction while the marker survives, and the module goes silent for the rest of a long session. Depends on: T048
-- [ ] T048b [US3] After the module view, inject the **file-specific** current records (exact file, then deepest directory) not already in the view or already injected — the "already injected" filter runs **before** the count limit; over-long lines are shortened with a marker, never dropped; one budget for view and lines; per-record markers; paths compared after resolving symbolic links (contracts/hooks.md §3). Depends on: T048
-- [ ] T048c [P] [US3] On `SessionStart`, emit one line naming the declared modules that have knowledge, the count of drafts waiting, and the commands that show them — a fixed projection of `modules.yaml` and counts, behind the tier-1 pre-filter, empty when there is nothing to name (contracts/hooks.md §3, Coexistence; Principle II requires it at the point of use). Depends on: T048a
+- [x] T046 [US3] Gate: T000 returned **"surfaces"** on 2.1.270, so this phase may proceed. **Re-run the probe before building the hook** — the behaviour is undocumented for `PostToolUse` and can change without a changelog entry. If a re-run returns "does not" or "transcript-only", stop; the delivery mechanism needs redesigning and that is not a task to improvise. Depends on: T000
+- [x] T047 [US3] Write the **tier-1 POSIX-sh pre-filter** as the hook `command` — no `args` field, or it becomes exec form and bypasses the shell. Depends on: T046
+- [x] T048 [US3] Implement `enou hook post-read` — tier-2 checks in fixed order: module membership, then per-session dedup, then records. Opens **no record file** on a miss. Dedup is a **marker file outside the repository** at `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session_id>/<module-id>`, keyed by the `session_id` from the hook's stdin JSON, and **claimed by exclusive create (`O_EXCL`/`"wx"`)** — the create is the lock, because Claude Code issues parallel Reads and a check-then-write would let both inject. In-memory state is impossible here: every hook invocation is a fresh process. Depends on: T044, T047
+- [x] T048a [US3] Add a `SessionStart` hook matching source **`compact`** that clears that session's marker directory. Without it the injected view is dropped by compaction while the marker survives, and the module goes silent for the rest of a long session. Depends on: T048
+- [x] T048b [US3] After the module view, inject the **file-specific** current records (exact file, then deepest directory) not already in the view or already injected — the "already injected" filter runs **before** the count limit; over-long lines are shortened with a marker, never dropped; one budget for view and lines; per-record markers; paths compared after resolving symbolic links (contracts/hooks.md §3). Depends on: T048
+- [x] T048c [P] [US3] On `SessionStart`, emit one line naming the declared modules that have knowledge, the count of drafts waiting, and the commands that show them — a fixed projection of `modules.yaml` and counts, behind the tier-1 pre-filter, empty when there is nothing to name (contracts/hooks.md §3, Coexistence; Principle II requires it at the point of use). Depends on: T048a
 
 ### US3 tests
 
-- [ ] T049 [P] [US3] Test (plan #12): tier-1 pre-filter exits 0 under **5 ms p95**, measured against a bare `sh -c 'exit 0'` baseline in the same run. Depends on: T047
+- [x] T049 [P] [US3] Test (plan #12): tier-1 pre-filter exits 0 under **5 ms p95**, measured against a bare `sh -c 'exit 0'` baseline in the same run. Depends on: T047
 - [ ] T050 [P] [US3] Test (plan #12a): tier-2 miss stays within *(p95 of an empty program on the same runtime, same run) + 5 ms* and opens no record file. **Relative**, so it survives a hardware change. Depends on: T048
-- [ ] T051 [P] [US3] Test (plan #11): with `enou` absent from PATH, and separately with no `.knowledge/`, every agent hook and the git hook exits 0 and writes **nothing** to stdout or stderr (FR-042). Depends on: T047
+  > **2026-10-31:** the functional half passes (a miss opens no record file). The latency half is **not met**: +8.5 ms over an empty Bun program (budget +5 ms), all of it runtime start-up — measured, research.md §10. Left open for spec 002's packaging decision.
+- [x] T051 [P] [US3] Test (plan #11): with `enou` absent from PATH, and separately with no `.knowledge/`, every agent hook and the git hook exits 0 and writes **nothing** to stdout or stderr (FR-042). Depends on: T047
 - [x] T052 [P] [US3] Test: view is byte-identical across two renders of an unchanged record set (SC-011), and across machines. Depends on: T043
 - [x] T053 [P] [US3] Test: kind priority outranks recency — an invariant from last year appears above a decision from today. Depends on: T043
 - [x] T053a [P] [US3] Test: a **superseded invariant does not appear in the view** and its successor does; a **redacted** record does appear, rendered `[redacted]`. Superseded and redacted are different states and must not be conflated. Depends on: T043, T045
 - [x] T054 [P] [US3] Test: over-budget module produces top N plus an overflow line naming the command; a module that omits nothing carries no overflow line. Depends on: T043
-- [ ] T055 [US3] Test: a declared module with no records, and a path in no declared module, inject **nothing** — no placeholder, no empty section. Depends on: T048
-- [ ] T055a [P] [US3] Test: **two concurrent invocations for the same session and module — exactly one injects.** Run them genuinely in parallel; a sequential test would pass against a check-then-write implementation that races in practice. Depends on: T048
-- [ ] T055b [P] [US3] Test: after a compact reset, the next read of that module **re-injects**. Depends on: T048a
-- [ ] T055c [P] [US3] Test: the marker path is **never inside the repository** — assert the resolved path is outside the working tree for each of `XDG_RUNTIME_DIR` set, unset with `TMPDIR` set, and both unset. Depends on: T048
-- [ ] T055d [P] [US3] Test (plan #21): with more file-specific records than `max_file_records`, the first read of the file injects the limit plus an overflow line naming **every** remaining id; nothing is shortened; a repeat read of the same file opens no record file. Depends on: T048b
-- [ ] T055e [P] [US3] Test (plan #14, read-path part): with drafts seeded beside every record, `view`, `log`, the read hook and `brief` never surface a draft without `--include-drafts`. Depends on: T048b, T044b
-- [ ] T055f [P] [US3] Test (plan #22): `brief` always carries a complete `checked` list; two briefs over unchanged records and paths are byte-identical; paths all outside every module give zero records, every path `uncovered-path`, and a non-empty `checked`. Depends on: T044b
-- [ ] T055g [US3] Test (plan #18): the real `enou` binary and the real MCP server over stdio return identical bytes for the same input on every shared command, **including an invalid and an unknown argument**. Depends on: T044c
-- [ ] T055h [P] [US3] **Measure** `brief` latency over 1, 10 and 100 paths at the design volume, with a committed harness, and record it in research.md §11 labelled measured (Principle I). Depends on: T044b
+- [x] T055 [US3] Test: a declared module with no records, and a path in no declared module, inject **nothing** — no placeholder, no empty section. Depends on: T048
+- [x] T055a [P] [US3] Test: **two concurrent invocations for the same session and module — exactly one injects.** Run them genuinely in parallel; a sequential test would pass against a check-then-write implementation that races in practice. Depends on: T048
+- [x] T055b [P] [US3] Test: after a compact reset, the next read of that module **re-injects**. Depends on: T048a
+- [x] T055c [P] [US3] Test: the marker path is **never inside the repository** — assert the resolved path is outside the working tree for each of `XDG_RUNTIME_DIR` set, unset with `TMPDIR` set, and both unset. Depends on: T048
+- [x] T055d [P] [US3] Test (plan #21): with more file-specific records than `max_file_records`, the first read of the file injects the limit plus an overflow line naming **every** remaining id; nothing is shortened; a repeat read of the same file opens no record file. Depends on: T048b
+- [x] T055e [P] [US3] Test (plan #14, read-path part): with drafts seeded beside every record, `view`, `log`, the read hook and `brief` never surface a draft without `--include-drafts`. Depends on: T048b, T044b
+- [x] T055f [P] [US3] Test (plan #22): `brief` always carries a complete `checked` list; two briefs over unchanged records and paths are byte-identical; paths all outside every module give zero records, every path `uncovered-path`, and a non-empty `checked`. Depends on: T044b
+- [x] T055g [US3] Test (plan #18): the real `enou` binary and the real MCP server over stdio return identical bytes for the same input on every shared command, **including an invalid and an unknown argument**. Depends on: T044c
+- [x] T055h [P] [US3] **Measure** `brief` latency over 1, 10 and 100 paths at the design volume, with a committed harness, and record it in research.md §11 labelled measured (Principle I). Depends on: T044b
 
 ---
 
 
-- [ ] T056 Add a **"Personal install (manual)"** section to `quickstart.md`. **Do not build `enou init`** — that is spec 002. Cover:
+- [x] T056 Add a **"Personal install (manual)"** section to `quickstart.md`. **Do not build `enou init`** — that is spec 002. Cover:
   - **(a)** `bun link` in this repo puts `enou` on PATH at `~/.bun/bin/enou` (verified: it symlinks a `package.json` bin and runs a `.ts` entry via its shebang)
   - **(b)** adding the extension to **another** repo: `specify extension add <path-to-this-repo>/.specify/extensions/enouement --dev` — `--dev` is documented as "Install from local directory". Register through the CLI, never by hand-editing `.specify/extensions/.registry` (it carries a `manifest_hash`)
   - **(c)** the Claude Code hook in **user scope** (`~/.claude/settings.json`): it relies on the tier-1 sh pre-filter, so in any repo without `.knowledge/` it costs ~1–2 ms and does nothing, and it makes **no network calls** — safe to leave on globally
@@ -227,29 +229,29 @@ hash is.
 
 ## Phase 7: User Story 4 — Knowledge captured outside spec-kit (P4)
 
-- [ ] T058 [US4] Implement the session-end / pre-compaction capture offer — **enqueue and exit**, with a detached worker doing the capture. `SessionEnd` hooks share a ~1.5 s budget. The worker writes **drafts**, never records (FR-043); the person learns of them from the next `SessionStart` line (T048c) and from `lint` and `brief`. Depends on: T041, T048c
-- [ ] T059 [US4] Implement triple-guard idempotency: a state key over the transcript's `size:mtime`, an exclusive non-blocking lock, **and** an idempotency check on the write. Depends on: T058
-- [ ] T060 [US4] Record an explicit decline durably so SC-007 can count it; fire nothing when no code changed. Depends on: T058
-- [ ] T061 [P] [US4] Test (plan #9): `SessionEnd` and `PreCompact` firing for one session capture **at most once** — prior art hit this with a single guard and still double-wrote. Depends on: T059
+- [x] T058 [US4] Implement the session-end / pre-compaction capture offer — **enqueue and exit**, with a detached worker doing the capture. `SessionEnd` hooks share a ~1.5 s budget. The worker writes **drafts**, never records (FR-043); the person learns of them from the next `SessionStart` line (T048c) and from `lint` and `brief`. Depends on: T041, T048c
+- [x] T059 [US4] Implement triple-guard idempotency: a state key over the transcript's `size:mtime`, an exclusive non-blocking lock, **and** an idempotency check on the write. Depends on: T058
+- [x] T060 [US4] Record an explicit decline durably so SC-007 can count it; fire nothing when no code changed. Depends on: T058
+- [x] T061 [P] [US4] Test (plan #9): `SessionEnd` and `PreCompact` firing for one session capture **at most once** — prior art hit this with a single guard and still double-wrote. Depends on: T059
 
 ---
 
 ## Phase 8: User Story 5 — Reviewers see knowledge and code drift apart (P5)
 
-- [ ] T062 [US5] Extend `lint` with the FR-015 check: a declared module's code changed with neither an **accepted** record nor a `Knowledge-None:` trailer; when a draft would cover it, the flag names that draft (FR-015, FR-045). Depends on: T041
-- [ ] T063 [US5] Extend `lint` with FR-016 (dangling path/commit, and declared symbols whose file — followed through renames, so a rename alone is never a finding (FR-037) — is gone or no longer defines the name; FR-047), FR-018 (contradicting current records), FR-039 (un-covered record count on declaration removal), a file added under `records/` that fails capture validation, and FR-050 drafts-waiting as information that never sets exit 2. Depends on: T062, T033a
-- [ ] T063a [US5] Add `contradiction` and `dangling-reference` to `brief`'s checks, reusing T063's checks rather than reimplementing them. Depends on: T063, T044b
-- [ ] T064 [US5] Implement `Knowledge-None:` trailer recognition, and flag a commit carrying **both** trailers as a contradiction rather than picking one. Depends on: T062
-- [ ] T065 [US5] Add `.githooks/pre-commit` and `.githooks/pre-push` calling `enou lint`; document `git config core.hooksPath .githooks`. Depends on: T063
-- [ ] T066 [US5] Add `.github/workflows/enouement.yml` running the identical `lint` with `--json`. Depends on: T063
-- [ ] T067 [US5] CI reads `Knowledge-None:` trailers from **the PR's own commits**, not only the merged commit — a squash merge can drop a trailer from the merged trailer block. Depends on: T066
+- [x] T062 [US5] Extend `lint` with the FR-015 check: a declared module's code changed with neither an **accepted** record nor a `Knowledge-None:` trailer; when a draft would cover it, the flag names that draft (FR-015, FR-045). Depends on: T041
+- [x] T063 [US5] Extend `lint` with FR-016 (dangling path/commit, and declared symbols whose file — followed through renames, so a rename alone is never a finding (FR-037) — is gone or no longer defines the name; FR-047), FR-018 (contradicting current records), FR-039 (un-covered record count on declaration removal), a file added under `records/` that fails capture validation, and FR-050 drafts-waiting as information that never sets exit 2. Depends on: T062, T033a
+- [x] T063a [US5] Add `contradiction` and `dangling-reference` to `brief`'s checks, reusing T063's checks rather than reimplementing them. Depends on: T063, T044b
+- [x] T064 [US5] Implement `Knowledge-None:` trailer recognition, and flag a commit carrying **both** trailers as a contradiction rather than picking one. Depends on: T062
+- [x] T065 [US5] Add `.githooks/pre-commit` and `.githooks/pre-push` calling `enou lint`; document `git config core.hooksPath .githooks`. Depends on: T063
+- [x] T066 [US5] Add `.github/workflows/enouement.yml` running the identical `lint` with `--json`. Depends on: T063
+- [x] T067 [US5] CI reads `Knowledge-None:` trailers from **the PR's own commits**, not only the merged commit — a squash merge can drop a trailer from the merged trailer block. Depends on: T066
 
 ### US5 tests
 
-- [ ] T068 [P] [US5] Test (plan #4): a `Knowledge-None:` trailer is still found after a squash merge recomposes the message. Depends on: T067
-- [ ] T069 [P] [US5] Test: a flag clears when a record is added **and** when a no-knowledge statement is added; neither counts as manual dismissal. Depends on: T064
-- [ ] T070 [P] [US5] Test (SC-012): every edit to an already-recorded file that is not a conforming redaction is rejected, reported as *k/N*. Depends on: T063
-- [ ] T070a [P] [US5] Test (plan #20): `lint` over 2N records takes less than three times as long as over N, measured in the same run — catches a quadratic re-read that every functional test would pass. Depends on: T063
+- [x] T068 [P] [US5] Test (plan #4): a `Knowledge-None:` trailer is still found after a squash merge recomposes the message. Depends on: T067
+- [x] T069 [P] [US5] Test: a flag clears when a record is added **and** when a no-knowledge statement is added; neither counts as manual dismissal. Depends on: T064
+- [x] T070 [P] [US5] Test (SC-012): every edit to an already-recorded file that is not a conforming redaction is rejected, reported as *k/N*. Depends on: T063
+- [x] T070a [P] [US5] Test (plan #20): `lint` over 2N records takes less than three times as long as over N, measured in the same run — catches a quadratic re-read that every functional test would pass. Depends on: T063
 
 ---
 
