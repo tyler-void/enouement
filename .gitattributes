@@ -1,0 +1,3 @@
+# Records are byte-canonical: LF line endings, so the parse -> re-serialise check holds on
+# every checkout (data-model §2.8 rule 7).
+.knowledge/** text eol=lf

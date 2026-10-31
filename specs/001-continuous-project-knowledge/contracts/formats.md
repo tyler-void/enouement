@@ -65,7 +65,8 @@ edit.
   removed automatically, since removing one silently detaches history.
 - Per-module `view` overrides fall back to `defaults.view`.
 - Resolution is **total and order-independent**: a current `path` beats another module's
-  `formerly`; remaining ties break by declaration order in the file. Nothing resolves by directory
+  `formerly`; then the more specific pattern wins; remaining ties break by declaration order in the
+  file (data-model §2.4). Nothing resolves by directory
   iteration order, because FR-032 requires identical rendering on every machine and filesystem
   ordering is not portable.
 

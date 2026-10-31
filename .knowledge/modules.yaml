@@ -1,0 +1,12 @@
+# Module declarations (FR-024): a path belongs to a module only by appearing here.
+# `formerly` keeps knowledge attached across a rename (FR-037). Limits are in records and
+# characters, never tokens (FR-013); a module may override any of them under `view:`.
+defaults:
+  view: { max_records: 20, max_summary: 120, max_file_records: 3 }
+modules:
+  - path: src/knowledge
+  - path: src/cli
+  - path: src/server.ts
+  - path: src/util
+  - path: bench/src
+    formerly: [src/backends]

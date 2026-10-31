@@ -161,9 +161,13 @@ module's view (contracts/hooks.md §3); like the other two limits it counts reco
 never tokens, and a module may override it.
 
 Matched with `Bun.Glob`. Resolution must be **total and order-independent**: when a path is
-claimed by one module's `path` and another's `formerly`, the current `path` wins, and ties beyond
-that are broken by declaration order in the file — recorded so FR-032's byte-identical rendering
-cannot depend on directory iteration order.
+claimed by one module's `path` and another's `formerly`, the current `path` wins; among matches of
+the same kind, the more specific pattern wins (the longer literal prefix, so `src/knowledge`
+beats `src` for `src/knowledge/id.ts` whatever order they are declared in); ties beyond that are
+broken by declaration order in the file — recorded so FR-032's byte-identical rendering cannot
+depend on directory iteration order. *(Specificity added 2026-10-31 while implementing T010:
+without it, declaring `src` above `src/knowledge` would silently hand every file in the nested
+module to the outer one.)*
 
 ### 2.5 Computed, never stored
 
