@@ -84,12 +84,20 @@ Two trailers, both plain text in the commit message, both visible in `git log` w
 | `Knowledge-Record: <ULID>[,<ULID>...]` | this commit implements these records | FR-002, consumed by `why` |
 | `Knowledge-None: <reason>` | this change taught nothing worth recording | FR-030, closes an FR-015 flag |
 
-**Guaranteed**: a commit that touches a declared module raises a flag unless it carries a
-`Knowledge-None:` trailer or a `Knowledge-Record:` trailer naming at least one **accepted** record
-covering that module. Trailer ids are resolved through the trust predicate (data-model §2.2): an
-id that is a draft, or a draft since rejected, neither clears a flag nor appears in a `why` answer
-— the trailer is history, and the record it promised does not exist yet, or ever. A commit carrying
-both trailers is a contradiction and `lint` reports it rather than picking one.
+**Guaranteed**: a change that touches a declared module raises a flag unless the module is covered
+by a `Knowledge-None:` statement or by an **accepted** record — added in the change, or named by a
+`Knowledge-Record:` trailer. Trailer ids are resolved through the trust predicate (data-model §2.2):
+an id that is a draft, or a draft since rejected, neither clears a flag nor appears in a `why`
+answer — the trailer is history, and the record it promised does not exist yet, or ever. A commit
+carrying both trailers is a contradiction and `lint` reports it rather than picking one. The exact
+coverage rules — which commit's statement covers which module — are in contracts/cli.md (`enou
+lint`, FR-015 rules).
+
+**Where the lines may sit** (*decided 2026-10-31*). `lint` recognises a `Knowledge-None:` or
+`Knowledge-Record:` line **anywhere** in a commit message, not only in the final trailer block, and
+allows leading indentation or a `* ` / `- ` list marker before it. Git's own squash message indents
+every original message by four spaces, and hosting tools list squashed commits as bullets; a
+statement that was correct before the squash must still count after it.
 
 **Squash merges strip trailers.** A squash merge composes a new commit message from the branch's
 commits, and a `Knowledge-None:` trailer written on an individual commit can fall outside the

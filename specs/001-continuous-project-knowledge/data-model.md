@@ -127,6 +127,24 @@ the real sequence; the `supersedes` edge cannot be wrong that way, because whoev
 record had the older one in front of them. Sorting a chain purely by ID would silently reorder
 history across machines — deterministic, reproducible, and wrong.
 
+**Contradictions (FR-018) are defined mechanically** (*decided 2026-10-31 while implementing US5*).
+FR-018 requires two current records that contradict each other to be visible rather than silently
+resolved, but no rule may read the prose — that would be a model judging records, which Principle VI
+forbids, and a guess, which Principle II forbids. Two structural signals stand in for it:
+
+| Signal | Definition | Reported as |
+|---|---|---|
+| **Fork** | two or more **current** records name the same record in `supersedes` | a finding: history says two different things replaced one truth, and only a person can say which one holds — by making one supersede the other |
+| **Unlinked decisions** | two current `decision` records concern the same path (one's path equals, contains or is contained by the other's) and neither supersedes the other | information, and only for pairs involving a decision new in the change being checked |
+
+Unlinked decisions are information, not a failure, because two decisions about one file are often
+about different aspects of it: flagging every such pair as a contradiction would be wrong more
+often than right, and a check that is usually wrong teaches people to ignore it. Showing the pair
+when a new decision lands is the prompt the spec's Assumptions describe ("the system prompts for the
+link when a new decision touches paths that already have current decisions, but does not guess").
+A fork cannot arise through `enou accept` (FR-046a refuses it); it arises when two branches each
+accept a successor of the same record and both merge — exactly the case a merge cannot see.
+
 ### 2.3 Provenance populations
 
 The three origins measure different things and are never merged into one figure (FR-036):

@@ -211,23 +211,62 @@ field matched a credential pattern, that the credential must be rotated. Never a
 
 ### `enou lint [--staged | --range <a>..<b>] [--json]`
 
-The whole of enforcement, in one command, so the local hook and CI cannot drift apart. Reports:
+The whole of enforcement, in one command, so the local hook and CI cannot drift apart.
+
+**Modes** (*decided 2026-10-31 while implementing US5*). A check is only as good as what it can
+see, and FR-015 is judged from commit messages — which do not exist yet when a pre-commit hook
+runs. So each mode checks what it can, and says what it could not:
+
+| Mode | Compares | Used by | Judges FR-015 |
+|---|---|---|---|
+| *(no flag)* | the working tree, untracked files included, against `HEAD` | a person, before committing | no — says so |
+| `--staged` | the index against `HEAD`: exactly what the next commit will contain, read out of the index, so an unstaged broken file cannot fail a clean commit | `.githooks/pre-commit` | no — says so |
+| `--range <a>..<b>` | the commits in `a..b` (merges excluded) and the tree change from their merge base to `b` | `.githooks/pre-push`, CI | **yes** |
+
+**Findings** (exit 2):
 
 | Check | Requirement |
 |---|---|
-| a declared module's code changed with neither an **accepted** record nor a `Knowledge-None:` trailer — a `Knowledge-Record:` trailer counts only for ids the trust predicate accepts | FR-015 |
-| a record references a path, symbol or commit that no longer exists | FR-016 |
-| an existing record file changed by anything other than a conforming redaction | FR-034 |
-| a change un-covers records (declaration removed) — reports the count | FR-039 |
-| two current records contradict each other | FR-018 |
+| a declared module's code changed in the range with no accepted record covering it and no `Knowledge-None:` statement — *range mode only* (rules below) | FR-015 |
+| a change leaves a current record's path, declared symbol, or stored commit pointing at nothing — a rename, and a module's `formerly` alias, are never findings | FR-016, FR-037, FR-047 |
+| an existing record file changed by anything other than a conforming redaction, or deleted | FR-034 |
+| a supersession fork: two **current** records supersede the same record | FR-018 |
+| a commit carrying both `Knowledge-Record:` and `Knowledge-None:` | formats §3 |
 | a record does not parse, or `parse → re-serialise` is not byte-identical | data-model §2.8 |
 | a parsed value has the wrong type (`commits` not hex strings, `date` not a `YYYY-MM-DD` string) | data-model §2.8 |
-| a record file was added under `records/` that does not pass capture validation — accepting is the only way in, so anything else is a hand-placed file | FR-044 |
-| the same ULID exists in both `inbox/` and `records/` | data-model §1 |
-| a declared symbol's file, followed through renames, is gone or no longer defines the name — a rename alone is never a finding (FR-037) | FR-016, FR-047 |
-| *(information, never a finding)* drafts waiting, with the paths they touch; for an FR-015 flag, the draft that would close it once accepted | FR-050, FR-015 |
+| a record file added under `records/` that capture validation would refuse (summary cap, secret scan, rules) — accepting is the only way in, so anything else is a hand-placed file | FR-044 |
+| the same ULID exists in both `inbox/` and `records/`; anything in a store directory that is not a flat `<ULID>.md` file; an invalid `modules.yaml` | data-model §1, FR-041 |
 
-Exit 2 on findings. Drafts waiting never cause exit 2 on their own.
+**Information** (shown, never exit 2):
+
+| Report | Requirement |
+|---|---|
+| drafts waiting, with the paths they touch; an FR-015 flag names the draft that would close it once accepted | FR-050, FR-015, FR-045 |
+| a declaration removed by the change, with the number of records it leaves in no module | FR-039 |
+| a new current decision on a path that already has a current decision it does not supersede | FR-018 |
+| references that were already dangling before the change | FR-016 |
+| every check that could not run, and why (no git, no commits yet, FR-015 outside range mode) | Principle II |
+
+FR-039 is information rather than a finding because removing a module is often deliberate; the
+count is what must be visible, and blocking a deliberate removal would teach people to bypass the
+hook. Pre-existing dangling references are information for the same reason: the change that broke
+them was flagged when it happened, and re-flagging the same reference on every later change is the
+noise that trains reviewers to ignore the check.
+
+**FR-015 rules** (range mode):
+
+- A module's code is any changed path outside `.knowledge/` that resolves to it.
+- It is covered by: a record added in the range (a new file under `records/`) whose paths resolve to
+  the module; or a `Knowledge-Record:` line, in any commit of the range, naming a **record** —
+  never a draft or a rejected draft — whose paths resolve to the module; or a `Knowledge-None:` line
+  on a commit that touched the module's code; or a `Knowledge-None:` line on a commit that touches
+  no code at all (an empty or knowledge-only commit), which covers the whole range — the natural way
+  to answer a flag after the fact is a commit that only says so.
+- Trailer lines are read anywhere in each commit message, with leading indentation or a `* ` / `- `
+  list marker allowed, because a squash merge recomposes messages and git's own squash message
+  indents the originals.
+
+Exit 2 on findings. Information never causes exit 2 on its own.
 
 `lint` reads the store **once** and checks every file against that in-memory set, so it is linear
 in the number of records. A per-file check that re-reads the whole store is quadratic. *Derived*
@@ -237,6 +276,11 @@ about 0.15 s; one full re-read per record is 10⁴ such passes, about 25 minutes
 `--json` for CI annotation. In CI, trailers are read from **the pull request's
 own commits**, not only from the merged commit — a squash merge can drop a `Knowledge-None:`
 trailer out of the merged trailer block (contracts/formats.md §3).
+
+Beyond the store pass, lint's git work is a fixed number of processes plus one `git grep` per
+changed file that a declared symbol is anchored in, so its cost follows the size of the change. The
+contradiction and dangling-reference checks are exported (`contradictions`, `danglingReferences`)
+so `brief` reports exactly what `lint` would.
 
 ### `enou modules [add|remove|list|uncovered]`
 
