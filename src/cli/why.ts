@@ -80,8 +80,9 @@ export function renderWhy(a: WhyAnswer, out: (t: string) => void): void {
   }
 }
 
-export function whyJson(a: WhyAnswer): unknown {
-  const rec = (r: WhyRecord) => ({
+/** One record as it appears in every `--json` answer (why, brief). */
+export function whyRecordJson(r: WhyRecord) {
+  return {
     id: r.id,
     status: r.status,
     superseded_by: r.supersededBy,
@@ -98,7 +99,11 @@ export function whyJson(a: WhyAnswer): unknown {
     implementing_commit: r.implementingCommit,
     file: r.path,
     matched_by: r.matchedBy,
-  });
+  };
+}
+
+export function whyJson(a: WhyAnswer): unknown {
+  const rec = whyRecordJson;
   return {
     query: a.query,
     kind: a.kind,
