@@ -1,0 +1,5 @@
+{
+  "name": "tiny-notes-api",
+  "type": "module",
+  "scripts": { "start": "bun src/api/server.ts" }
+}

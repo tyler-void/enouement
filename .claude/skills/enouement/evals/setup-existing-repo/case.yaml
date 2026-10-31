@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: setup-existing-repo
+expected_outcome: |
+  The repository gets a knowledge store (.knowledge/records and .knowledge/inbox), src/api and src/db
+  declared as modules, the LF rule in .gitattributes, Claude Code hooks and deny rules for accept,
+  reject and redact merged into .claude/settings.json, and `enou lint` reports no findings. No record
+  is created or accepted without the owner.
+context:
+  scaffold_script: place-files.sh

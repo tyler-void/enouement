@@ -1,0 +1,4 @@
+defaults:
+  view: { max_records: 20, max_summary: 120, max_file_records: 3 }
+modules:
+  - path: "src"

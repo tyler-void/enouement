@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: capture-decision
+expected_outcome: |
+  One draft of kind decision is written to .knowledge/inbox/ for src/cache.ts, with a one-line
+  summary, the reason (data lost on restart) in its body, and Redis named as a rejected alternative.
+  The agent does not accept it; it tells the person the draft id and the `enou accept` command.
+context:
+  scaffold_script: place-files.sh
