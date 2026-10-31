@@ -3,8 +3,8 @@
 **Feature**: `001-continuous-project-knowledge` | **Plan**: [plan.md](plan.md) | **Spec**: [spec.md](spec.md)
 **Generated**: 2026-09-21 · **Amended**: 2026-10-31 (drafts and acceptance, symbols, `brief`,
 one command definition, read-hook fixes, measured recall — spec.md, Session 2026-10-31) ·
-**Phases 1 and 2 (T001–T018) are implemented** (2026-10-31): the foundation gate is closed. Nothing
-after T018 has been implemented. Tasks added by the amendment carry a letter suffix so that no
+**Implemented so far** (2026-10-31): Phases 1 and 2 (T001–T018, the foundation gate is closed), and
+in US1/US2 every task marked [x] below. Tasks added by the amendment carry a letter suffix so that no
 existing task number changes meaning.
 
 Tests are included because plan.md lists 23 of them as mandatory (14 original + 9 added 2026-10-31), each tied to a failure that is
@@ -117,28 +117,28 @@ hash is.
 **Goal**: finishing a spec-kit feature produces drafts, unasked, linked to the spec; accepted, they become records whose implementing commit is derived.
 **Independent test**: complete a spec-kit feature; inspect the PR diff; drafts exist with kind, one-line summary, rejected alternatives for decisions, no explicit request made; `enou accept` turns them into records.
 
-- [ ] T020 [US1] Implement `enou record` — flags per contracts/cli.md; **writes a draft to `.knowledge/inbox/`, never a record**; returns the id; refuses rather than repairs; writes nothing on refusal. Depends on: **T018**
-- [ ] T020a [US1] Implement `src/knowledge/accept.ts` and `enou drafts` / `enou accept` / `enou reject` — accept re-validates (including the secret scan and the no-fork rule of FR-046a), writes the record canonically, removes the draft; ids processed in order, output says exactly which became records; reject deletes drafts only (FR-044, FR-046). Depends on: T020, T021
-- [ ] T021 [US1] Wire capture-time secret scanning into `record`: refuse on match, report which pattern matched and in which field. Depends on: T020, T007
-- [ ] T022 [US1] Implement derived implementing-commit resolution in `src/knowledge/why.ts` — the **oldest** commit from `git log --diff-filter=A -- .knowledge/records/<id>.md .knowledge/inbox/<id>.md` via `platform.ts` (data-model §2.7). Depends on: **T018**
-- [ ] T023 [US1] Implement `enou modules list|uncovered` (FR-026). Depends on: **T018**, T010
-- [ ] T024 [US1] Implement `enou redact` — explicit only, requires `--reason`, writes `{date, reason, fields}`, prints that the original survives in git history and that a credential must be rotated. Depends on: **T018**
+- [x] T020 [US1] Implement `enou record` — flags per contracts/cli.md; **writes a draft to `.knowledge/inbox/`, never a record**; returns the id; refuses rather than repairs; writes nothing on refusal. Depends on: **T018**
+- [x] T020a [US1] Implement `src/knowledge/accept.ts` and `enou drafts` / `enou accept` / `enou reject` — accept re-validates (including the secret scan and the no-fork rule of FR-046a), writes the record canonically, removes the draft; ids processed in order, output says exactly which became records; reject deletes drafts only (FR-044, FR-046). Depends on: T020, T021
+- [x] T021 [US1] Wire capture-time secret scanning into `record`: refuse on match, report which pattern matched and in which field. Depends on: T020, T007
+- [x] T022 [US1] Implement derived implementing-commit resolution in `src/knowledge/why.ts` — the **oldest** commit from `git log --diff-filter=A -- .knowledge/records/<id>.md .knowledge/inbox/<id>.md` via `platform.ts` (data-model §2.7). Depends on: **T018**
+- [x] T023 [US1] Implement `enou modules list|uncovered` (FR-026). Depends on: **T018**, T010
+- [x] T024 [US1] Implement `enou redact` — explicit only, requires `--reason`, writes `{date, reason, fields}`, prints that the original survives in git history and that a credential must be rotated. Depends on: **T018**
 - [ ] T025 [US1] Create the spec-kit extension at `.specify/extensions/enouement/` with `extension.yml` (**id `enouement`**) declaring `provides.commands` as **markdown command files** — verified from the installed git extension, whose `extension.yml` provides `commands/speckit.git.commit.md`. Spec-kit hooks invoke an **agent command**, not a shell command, so a hook cannot call `enou record` directly
 - [ ] T025a [US1] **Write `commands/speckit.enouement.capture.md` — the capture prompt.** It instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item, supplying kind, a one-line summary, affected paths, declared symbols where one definition is the point, and rejected alternatives for decisions — or, when nothing of consequence was learned, to add a `Knowledge-None:` trailer instead (FR-005, FR-030). It ends by listing the drafts it wrote and telling the person to read them and run `enou accept`; **it never accepts** (FR-044a). **Quality check**: run it against a finished feature in this repository and judge the drafts it produces — are they things a reader would want in a year, or restatements of the diff? A draft that only says what the diff says is a failure of this task, not of the tool. Depends on: T025, T020, T020a
 - [ ] T025b [US1] Write `commands/speckit.enouement.brief.md` for `before_specify`/`before_plan` — in the MVP it runs `enou why` over each path the feature is expected to touch and presents the records before the spec is written (FR-011); T025c upgrades it to `enou brief`. *Renamed from `recall` on 2026-10-31 (contracts/hooks.md §2).* Depends on: T025, T033
 - [ ] T026 [US1] Order `after_implement` so `enouement` runs **before** the git extension's `speckit.git.commit` in `.specify/extensions.yml`. Depends on: T025
-- [ ] T027 [US1] Implement `enou recall` as a stub that **exits 1 with "not implemented"** and returns no results. Depends on: **T018**
+- [x] T027 [US1] Implement `enou recall` as a stub that **exits 1 with "not implemented"** and returns no results. Depends on: **T018**
 
 ### US1 tests
 
-- [ ] T028 [P] [US1] Test (plan #1): `recall` refuses and returns nothing. Depends on: T027
-- [ ] T029 [P] [US1] Test: `record` refuses on missing/over-long summary, on `--kind decision` without `--rejected`, on unknown `--supersedes`, and on missing `--source` for `backfilled`/`oral` — writing nothing each time. Depends on: T020
-- [ ] T030 [P] [US1] Test: a seeded corpus of known secret shapes is refused at capture, with the match reported (plan test 5 of SC-012). Depends on: T021
-- [ ] T031 [P] [US1] Test (plan #3): the implementing commit resolves after a **squash**, a **rebase** and an **amend** — a stored SHA would not survive these. Depends on: T022
+- [x] T028 [P] [US1] Test (plan #1): `recall` refuses and returns nothing. Depends on: T027
+- [x] T029 [P] [US1] Test: `record` refuses on missing/over-long summary, on `--kind decision` without `--rejected`, on unknown `--supersedes`, and on missing `--source` for `backfilled`/`oral` — writing nothing each time. Depends on: T020
+- [x] T030 [P] [US1] Test: a seeded corpus of known secret shapes is refused at capture, with the match reported (plan test 5 of SC-012). Depends on: T021
+- [x] T031 [P] [US1] Test (plan #3): the implementing commit resolves after a **squash**, a **rebase** and an **amend** — a stored SHA would not survive these. Depends on: T022
 - [ ] T032 [US1] Test (plan #10): `after_implement` capture runs before the git auto-commit; inverted, every `Knowledge-Record:` trailer points one commit late. Depends on: T026
-- [ ] T032a [P] [US1] Test (plan #15): a secret pasted into a draft **after** capture is refused at `accept` with the match reported, and `records/` is unchanged. Depends on: T020a
-- [ ] T032b [P] [US1] Test (plan #16): the implementing commit is the **capture** commit when the draft was committed and accepted later — also after squash, rebase and amend — and the **acceptance** commit when the draft was never committed. Depends on: T022, T020a
-- [ ] T032c [P] [US1] Test: accepting a draft that supersedes a record already superseded by another accepted record is refused, naming the newer record (FR-046a); `reject` never touches `records/`. Depends on: T020a
+- [x] T032a [P] [US1] Test (plan #15): a secret pasted into a draft **after** capture is refused at `accept` with the match reported, and `records/` is unchanged. Depends on: T020a
+- [x] T032b [P] [US1] Test (plan #16): the implementing commit is the **capture** commit when the draft was committed and accepted later — also after squash, rebase and amend — and the **acceptance** commit when the draft was never committed. Depends on: T022, T020a
+- [x] T032c [P] [US1] Test: accepting a draft that supersedes a record already superseded by another accepted record is refused, naming the newer record (FR-046a); `reject` never touches `records/`. Depends on: T020a
 
 ---
 
@@ -147,19 +147,19 @@ hash is.
 **Goal**: ask why a file or symbol is as it is; get the records that shaped it, oldest to newest, superseded ones marked.
 **Independent test**: ask about a file with known history; compare against the known answer.
 
-- [ ] T033 [US2] Implement `enou why <path-or-symbol>` — assemble from `paths`, git rename history (`--follow`), and `Knowledge-Record:` trailers; every id resolved through `trust.ts`, so a trailer naming a draft contributes nothing; drafts only with `--include-drafts`, labelled; an argument that is or ever was a tracked path is a path question (contracts/cli.md). Depends on: **T018**, T009a, T020a, T022
-- [ ] T033a [US2] Implement `src/knowledge/symbols.ts` and wire it into `why` — declared `symbols` first; otherwise a literal `git grep` definition search at `HEAD` with whole-word exact names and fixed per-language patterns (TypeScript/JavaScript in v1); one file → its records, several → candidates and **no** records, none → said plainly (FR-047). No index. Depends on: T033
-- [ ] T034 [US2] Implement supersession-chain ordering in `why`: **oldest → newest follows the `supersedes` graph**, with the identifier as the deterministic tie-break between *unrelated* records only. Depends on: T033
-- [ ] T035 [US2] Mark superseded records in output with the ID that replaced them; say plainly when there is no record; report unparseable records inline. Depends on: T034
-- [ ] T036 [US2] Add `--json` output for `why` per the contracts/cli.md stability guarantee. Depends on: T035
+- [x] T033 [US2] Implement `enou why <path-or-symbol>` — assemble from `paths`, git rename history (`--follow`), and `Knowledge-Record:` trailers; every id resolved through `trust.ts`, so a trailer naming a draft contributes nothing; drafts only with `--include-drafts`, labelled; an argument that is or ever was a tracked path is a path question (contracts/cli.md). Depends on: **T018**, T009a, T020a, T022
+- [x] T033a [US2] Implement `src/knowledge/symbols.ts` and wire it into `why` — declared `symbols` first; otherwise a literal `git grep` definition search at `HEAD` with whole-word exact names and fixed per-language patterns (TypeScript/JavaScript in v1); one file → its records, several → candidates and **no** records, none → said plainly (FR-047). No index. Depends on: T033
+- [x] T034 [US2] Implement supersession-chain ordering in `why`: **oldest → newest follows the `supersedes` graph**, with the identifier as the deterministic tie-break between *unrelated* records only. Depends on: T033
+- [x] T035 [US2] Mark superseded records in output with the ID that replaced them; say plainly when there is no record; report unparseable records inline. Depends on: T034
+- [x] T036 [US2] Add `--json` output for `why` per the contracts/cli.md stability guarantee. Depends on: T035
 
 ### US2 tests
 
-- [ ] T037 [P] [US2] Test (plan #8): chain ordering follows `supersedes` with IDs **deliberately minted out of clock order** — the monotonic ULID orders within one process only. Depends on: T034
-- [ ] T038 [P] [US2] Test: `why` follows git rename history (FR-038) for a file that moved. Depends on: T033
-- [ ] T039 [P] [US2] Test: a file with no records produces a plain "no records" answer, not an inferred rationale. Depends on: T035
-- [ ] T039a [P] [US2] Test (plan #19): a name defined in two files lists both with **zero** records; a declared symbol returns its record without searching; a nested member the patterns cannot see is "no definition found", never another file's records. Depends on: T033a
-- [ ] T039b [P] [US2] Test (plan #14, `why` part): with a draft seeded beside every record, `why` never returns a draft without `--include-drafts`, a superseding draft does not mark its target superseded, and a `Knowledge-Record:` trailer naming a draft contributes nothing. Depends on: T033
+- [x] T037 [P] [US2] Test (plan #8): chain ordering follows `supersedes` with IDs **deliberately minted out of clock order** — the monotonic ULID orders within one process only. Depends on: T034
+- [x] T038 [P] [US2] Test: `why` follows git rename history (FR-038) for a file that moved. Depends on: T033
+- [x] T039 [P] [US2] Test: a file with no records produces a plain "no records" answer, not an inferred rationale. Depends on: T035
+- [x] T039a [P] [US2] Test (plan #19): a name defined in two files lists both with **zero** records; a declared symbol returns its record without searching; a nested member the patterns cannot see is "no definition found", never another file's records. Depends on: T033a
+- [x] T039b [P] [US2] Test (plan #14, `why` part): with a draft seeded beside every record, `why` never returns a draft without `--include-drafts`, a superseding draft does not mark its target superseded, and a `Knowledge-Record:` trailer naming a draft contributes nothing. Depends on: T033
 - [ ] T039c [US2] **Measure** the literal definition search with a committed harness on a public repository of 10⁴–10⁵ tracked files, p50/p95 per symbol, labelled measured with its method in research.md §11 (Principle I). Depends on: T033a
 - [ ] T040a [US2] **Blind backfill.** Capture the June/July/September history as drafts with `provenance: backfilled`, and accept or reject each **unedited** — the person accepting wrote the questions, so an edit before the reveal would leak them (spec.md, Success Criteria). The questions are not in the tree at this point (T019a), so this is blind by construction rather than by promise. Depends on: **T019a**, T036, T020a
 - [ ] T040b [US2] **Reveal and evaluate.** After T019b, run the evaluation set and report SC-002/SC-002a/SC-003 as *k/N* **per provenance population**, never merged; `N=0` populations as "no data"; raw counts where N is too small for a percentage. Depends on: T019b, T019c

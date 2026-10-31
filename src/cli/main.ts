@@ -6,22 +6,46 @@
 // tool never looks like a careful one; the stack trace is printed only with ENOU_DEBUG set.
 
 import { COMMANDS, parseArgs, usage, type Args, type CommandDef } from "./commands";
-import { findRoot } from "./root";
+import { runAccept, runDrafts, runReject } from "./drafts";
+import { runHook } from "./hook";
 import { runLint } from "./lint";
+import { runModules } from "./modules";
+import { runRecall } from "./recall";
+import { runRecord } from "./record";
+import { runRedact } from "./redact";
+import { findRoot } from "./root";
+import { EXIT } from "./util";
+import { runBrief, runLog, runShow, runView } from "./view";
+import { runWhy } from "./why";
 
-export const EXIT = { ok: 0, refused: 1, findings: 2, internal: 3 } as const;
+export { EXIT };
 
 export interface Io {
   cwd: string;
   env: Record<string, string | undefined>;
   out: (text: string) => void;
   err: (text: string) => void;
+  /** Reads all of stdin (for `--body-file -` and hook payloads). Injected by tests. */
+  stdin?: () => string;
 }
 
 type Handler = (args: Args, ctx: { root: string; io: Io }) => number | Promise<number>;
 
 const HANDLERS: Record<string, Handler> = {
+  record: runRecord,
+  drafts: runDrafts,
+  accept: runAccept,
+  reject: runReject,
+  why: runWhy,
+  brief: runBrief,
+  view: runView,
+  log: runLog,
+  show: runShow,
+  redact: runRedact,
   lint: runLint,
+  modules: runModules,
+  recall: runRecall,
+  hook: runHook,
 };
 
 function topUsage(): string {
@@ -63,6 +87,8 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
     }
     const root = findRoot(io.cwd, io.env);
     if (!root.ok) {
+      // An agent hook in a repository without a knowledge store is a silent no-op (FR-042).
+      if (def.name === "hook") return EXIT.ok;
       io.err(`enou ${def.name}: ${root.message}`);
       return EXIT.refused;
     }

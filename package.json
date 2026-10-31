@@ -11,7 +11,7 @@
   "scripts": {
     "start": "bun run src/server.ts",
     "knowledge": "bun src/cli/main.ts",
-    "test:knowledge": "bun test ./test/id.test.ts ./test/record.test.ts ./test/secrets.test.ts ./test/store.test.ts ./test/trust.test.ts ./test/modules.test.ts ./test/lint.test.ts ./test/cli.test.ts ./test/platform-seam.test.ts",
+    "test:knowledge": "bun test ./test/",
     "test:client": "bun run test/client.ts",
     "test": "bun run test:knowledge && bun run test:client"
   },
