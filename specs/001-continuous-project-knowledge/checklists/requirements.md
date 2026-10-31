@@ -86,3 +86,14 @@ be missing a case the design surfaces. Recorded in both documents rather than ab
 a slot): what qualifies as a decision worth recording, review-before-landing, advisory vs blocking
 flags in v1, how supersession is established, and retention of superseded records. All appear in
 Assumptions.
+
+**Clarification session 3 (2026-10-31)** — eight answers. Three were decided by the owner: the
+audience (solo developers and small teams), an inbox-and-accept gate replacing the PR diff as the
+only review, and `brief` now with `recall` gated on measurement. The other five are design
+consequences of those three, proposed during the amendment and open to the owner's review: drafts
+never clearing a flag or superseding a record, the implementing commit following a draft into the
+record store, file-anchored symbols with a literal definition search, `brief` as the form of
+FR-011, and the shape of the `recall` bar. No `[NEEDS CLARIFICATION]` marker was introduced.
+Functional requirements grew 49 → 59. Every item above was re-checked against the amended spec and
+still passes; the one Assumption whose reasoning changed — review-before-landing — is amended in
+place with the date and the reason, not rewritten.

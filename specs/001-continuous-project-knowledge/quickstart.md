@@ -37,12 +37,32 @@ enou record \
   --commit b4563b3
 ```
 
-Writes `.knowledge/records/01JBQ7K3M2N8P4R6T9V0W1X2Y3.md`. You review it in the PR diff like any
-other file — that is the whole review mechanism (FR-020).
+Writes a **draft**, `.knowledge/inbox/01JBQ7K3M2N8P4R6T9V0W1X2Y3.md`, and prints its id. Nothing
+reads drafts as knowledge yet — not `why`, not views, not the agent hook (FR-045).
 
 It **refuses**, writing nothing, if the summary is missing or over the cap, if a `decision` has no
 rejected alternative, or if anything in it matches a secret pattern. A refusal names what
 tripped it.
+
+## Accept it
+
+Most drafts are written by your agent — at the end of a spec-kit feature, or when a session ends
+— not typed by hand. Either way, a draft becomes knowledge only when you say so:
+
+```bash
+enou drafts                       # what is waiting, oldest first
+$EDITOR .knowledge/inbox/01JBQ7….md   # fix anything the agent got wrong
+enou accept 01JBQ7K3M2N8P4R6T9V0W1X2Y3
+```
+
+`accept` checks the draft again — your edit could have added a secret or broken a rule — then
+moves it to `.knowledge/records/` under the same id. From then on it is immutable: you correct it
+by superseding it, never by editing it. `enou reject <id>` throws a draft away.
+
+The agent cannot accept for you: the MCP server has no such tool, and the Claude Code setup adds
+deny rules for `enou accept`, `enou reject` and `enou redact` (contracts/hooks.md §3, "Denying
+acceptance to agents"). In a pull request, the
+reviewer sees the move from `inbox/` to `records/` in the diff.
 
 ## Ask why
 
@@ -69,13 +89,34 @@ Oldest first, superseded entries marked with what replaced them (FR-009). It fol
 history, so a file that moved still answers (FR-038). With no records it says so — it does not
 infer a rationale from the code (FR-010).
 
+Asking about a symbol works too — `enou why buildContext`. If a record declares it, that record
+answers; otherwise the definition is found by a literal search of the tracked files. If the name
+is defined in two places, you get both locations and no answer until you pick one
+(`enou why src/util/context.ts#buildContext`) — it never guesses (FR-047).
+
+## Before you start something *(from US3)*
+
+In the MVP, the spec-kit extension shows the `enou why` answer for each path a feature will touch.
+Once module views exist, it shows a brief instead:
+
+```bash
+enou brief src/util/context.ts src/server.ts
+```
+
+The records that affect those paths, the views of their modules, and what is missing: paths no
+module covers, modules with nothing recorded, drafts still waiting, and — once US5 lands —
+contradictions and dangling references. It always lists the checks it ran, so an empty gap list
+means "checked and clean", not "not looked at" (FR-048). The spec-kit extension runs this before a
+spec is written.
+
 ## What a reviewer sees
 
 A PR touching `src/knowledge/` with no record and no trailer:
 
 ```
 knowledge: src/knowledge changed with no knowledge recorded
-  → add a record:  enou record --paths src/knowledge/...
+  → add a record:  enou record --paths src/knowledge/...   then  enou accept <id>
+    (a draft alone does not clear this — the flag names it until it is accepted)
   → or say it taught nothing, in the commit message:
         Knowledge-None: routine dependency bump
 ```
@@ -87,14 +128,15 @@ The second is not a dismissal — it is part of the change, visible in the diff,
 
 | Increment | What it adds |
 |---|---|
-| US3 | the bounded module view, delivered to Claude Code via `PostToolUse(Read)` and to every other agent via `knowledge view` |
+| US3 | the bounded module view, delivered to Claude Code via `PostToolUse(Read)` and to every other agent via `enou view`; `enou brief`; `enou show` |
 | US4 | capture offered at session end for work done outside spec-kit, at most once per session |
 | US5 | the PR flags above, produced by CI as well as the local hook |
 
 ## Two things that are deliberately not here
 
-- **`knowledge recall`** exits 1 with "not implemented". A half-tuned ranker returning
+- **`enou recall`** exits 1 with "not implemented". A half-tuned ranker returning
   plausible-but-wrong records is the failure that removed two tools from this repo in July;
-  tuning happens in `bench/` and ships when measured (Principles II and V).
+  tuning happens in `bench/` and ships only if it clears a bar registered before it was built
+  (Principles II and V, FR-049).
 - **No generated file is written anywhere.** The view and the full log are rendered on demand and
   never committed, so nothing on disk can drift from the records it came from.

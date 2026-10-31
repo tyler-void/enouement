@@ -17,6 +17,13 @@ immutability, un-coverage reporting and PR flags, and is wired into **both** a l
 CI — a solo developer pushing straight to `main` never opens a PR, so CI alone would guarantee
 nothing.
 
+*Amended 2026-10-31.* Capture writes **drafts** to `.knowledge/inbox/`; a person runs
+`enou accept` to make them records, and no read path serves a draft (research.md §12). `why`
+resolves symbols through declared `symbols` and a literal `git grep` definition search
+(research.md §15). `brief` is the deterministic pre-work projection behind FR-011 and FR-048.
+`recall` stays a stub with a registered bar to clear (research.md §13). The audience is a solo
+developer or a small team (research.md §16).
+
 **The whole MVP needs zero new runtime dependencies.** `Bun.YAML`, `Bun.Glob`, `Bun.$` and
 `crypto.getRandomValues` are built in (probed on Bun 1.4.0, see research.md), which satisfies the
 constitution's "no new runtime dependency without a decision record" without needing one.
@@ -28,8 +35,10 @@ constitution's "no new runtime dependency without a decision record" without nee
 (module and `formerly` path globs), `Bun.$` (git), `crypto.getRandomValues` (ULID). Existing
 `@modelcontextprotocol/sdk` + `zod` stay confined to the MCP server surface.
 **Storage**: Plain files in the repo — `.knowledge/records/<ULID>.md` (flat, one file per record,
-FR-041) and `.knowledge/modules.yaml` (declarations, `formerly` aliases, per-module overrides).
-No database, no index file, no generated artefact committed.
+FR-041), `.knowledge/inbox/<ULID>.md` (drafts, same format, FR-043) and `.knowledge/modules.yaml`
+(declarations, `formerly` aliases, per-module overrides). No database, no index file, no generated
+artefact committed. Any cache added later lives in a directory that ignores itself
+(`.gitignore` containing `*`), so no branch can commit it by accident (research.md §15).
 **Testing**: `bun test`, extending the existing `test/` suite; `test/client.ts` continues to
 assert the MCP tool list exactly.
 **Target Platform**: Linux/macOS developer machines and CI runners. Fully offline; no daemon, no
@@ -85,6 +94,20 @@ because something would otherwise fail silently:
 | 12a | **Tier 2**: a store-present-but-miss run stays within `(p95 of an empty program on the same runtime, measured in the same run) + 5 ms`, and opens no record file | the budget is relative so it survives a hardware change; an absolute one silently passes on a fast laptop and flakes on a 2-vCPU CI runner |
 | 13 | No file outside `src/knowledge/platform.ts` references a `Bun.*` global | enforced by a test, not by review — the seam is worthless the first time it is quietly bypassed |
 
+*Added 2026-10-31* — each guards a failure that would be silent:
+
+| # | Test | Why it is mandatory |
+|---|---|---|
+| 14 | With a draft seeded beside every record, `why`, `view`, `log`, the read hook and `brief` never return it without `--include-drafts`; a draft that supersedes a record leaves that record current until accepted | the inbox is worthless the first time one read path forgets it — one trust predicate, tested on every path |
+| 15 | A secret pasted into a draft **after** capture is refused at `accept`, with the match reported, and nothing is written to `records/` | capture scanned the agent's text; a person's edit was never scanned |
+| 16 | The implementing commit is the capture commit when the draft is committed first and accepted later, still after a squash, a rebase and an amend; and is the acceptance commit when the draft was never committed | the inbox moved the file, and a derivation that looks only under `records/` silently points at the acceptance commit |
+| 17 | `test/client.ts` asserts the MCP tool list exactly — no `accept`, `reject`, `redact`, `lint` or `recall` | an acceptance tool appearing on the agent surface would undo FR-044a without any other test failing |
+| 18 | The real `enou` binary and the real MCP server, over stdio, give identical bytes for the same input on every shared command — **including an invalid argument and an unknown one** | two surfaces that agree only on valid input disagree exactly where it matters |
+| 19 | `why <name>` with two defining files lists both and returns **zero** records; with a declared symbol, returns the declaring record without searching | picking one candidate is a confident wrong answer half the time |
+| 20 | `lint` over 2N records takes less than three times as long as over N, in the same run | a per-file re-read of the store is quadratic and passes every functional test |
+| 21 | With more file-specific records than `max_file_records`, the first read of that file injects the limit **and an overflow line naming every remaining id**; a repeat read of the same file opens no record file | filtering "already seen" after the limit, or dropping what does not fit, strands records silently; computing file lines on every read breaks the tier-2 budget |
+| 22 | `brief` always carries a complete `checked` list, and two briefs over unchanged records and paths are byte-identical | an empty gap list without a checked list reads as "all clear" when nothing was checked |
+
 **No violations. Complexity Tracking is empty and the section is omitted.**
 
 ### Post-design re-check (after Phase 1)
@@ -116,6 +139,31 @@ design surfaced that the pre-design check could not see:
    v1.0.0 — and does it through the block spec-kit manages, rather than writing around it, which
    is what Principle III required.
 
+### Second re-check (2026-10-31, after the clarification session of that date)
+
+All gates still pass. What the amendment touched, principle by principle:
+
+- **I (measure)** — no new number is claimed as a result. The `recall` bar is registered before
+  the ranker exists (research.md §13); the cost of the definition search is carried as an
+  unmeasured risk with tasks T039c and T055h (research.md §11), and the one scratch-probe number is
+  labelled as not a result.
+- **II (no wrong answers)** — strengthened in three places: drafts are never served as knowledge;
+  an ambiguous symbol lists candidates rather than picking; `recall` must abstain as a separate,
+  measured decision.
+- **III (in the repo)** — drafts are plain files in the repository, reviewable in the diff;
+  acceptance is a CLI command; nothing is gitignored.
+- **IV (supersede, never erase)** — rejecting a draft deletes a file that was never knowledge; it is
+  stated as such (FR-046), and research.md §1's superseded position is kept and marked, not deleted.
+  Immutability now has a clear start: acceptance.
+- **V (research separate)** — the ranker and any dense study live in `bench/`; no dependency is
+  promoted. codegraph and LEANN were evaluated and not adopted (research.md §14, §15).
+- **VI (mechanical)** — capture stays hook-triggered; acceptance is the one step that is
+  deliberately *not* automatic, because its whole meaning is that a person chose it. `brief` is a
+  deterministic projection.
+- **Operating Constraints** — still zero new runtime dependencies: `git grep` via `Bun.$`, and the
+  single command definition is plain data that the MCP layer translates into its existing schema
+  library.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -139,24 +187,31 @@ specs/001-continuous-project-knowledge/
 
 ```text
 src/
-├── server.ts                  # existing MCP server; gains knowledge tools in a later increment
+├── server.ts                  # existing MCP server; its two Context Pack tools are removed and replaced by the tool list of contracts/cli.md (T044c)
 ├── knowledge/                 # the core library — no I/O policy, no agent assumptions
 │   ├── platform.ts            # THE ONLY file allowed to touch Bun.* globals — the spec-002 seam
 │   ├── id.ts                  # ULID: time-sortable + collision-free (FR-029)
 │   ├── record.ts              # parse/serialise one record; front-matter contract
-│   ├── store.ts               # flat store: list, read, append. Never mutates (FR-007)
+│   ├── store.ts               # flat stores: records/ and inbox/; list, read, write a draft. Records never mutate (FR-007)
+│   ├── trust.ts               # THE one predicate deciding what counts as knowledge (data-model §2.2)
+│   ├── accept.ts              # accept / reject: the only writer of records/ (FR-044/046/046a)
 │   ├── modules.ts             # declarations, `formerly` globs, per-module overrides (FR-024/037/041)
 │   ├── secrets.ts             # deterministic offline patterns; refuse-on-match (FR-035)
 │   ├── redact.ts              # the single permitted mutation (FR-033)
-│   ├── why.ts                 # paths + trailers + rename history + supersession (FR-008/009/038)
+│   ├── symbols.ts             # declared symbols + literal git-grep definition search (FR-047)
+│   ├── why.ts                 # paths + trailers + rename history + supersession + symbols (FR-008/009/038/047)
 │   ├── view.ts                # bounded deterministic projection (FR-027*)  — increment 2
-│   ├── recall.ts              # v1 stub: refuses, never guesses (Principle II)
-│   └── lint.ts                # immutability, un-coverage, PR flags (FR-034/039/015/016)
+│   ├── brief.ts               # pre-work projection: records, views, gaps, checks run (FR-011/048)
+│   ├── recall.ts              # v1 stub: refuses, never guesses (Principle II, FR-049)
+│   └── lint.ts                # immutability, un-coverage, PR flags, drafts waiting (FR-034/039/015/016/050)
 ├── cli/
+│   ├── commands.ts            # ONE definition per command: args, types, enums → CLI parser + MCP schema
+│   ├── root.ts                # repository root discovery (contracts/cli.md)
 │   └── main.ts                # single entry point; every capability reachable here (FR-022)
-└── util/                      # existing: bin.ts, context.ts
+└── util/                      # existing: bin.ts, context.ts — context.ts retires with the Context Pack tools
 
 .knowledge/                    # the store itself, committed with the code
+├── inbox/<ULID>.md            # drafts (FR-043)
 ├── records/<ULID>.md
 └── modules.yaml
 
@@ -223,3 +278,9 @@ cannot be repaired afterwards.
    - `source`: the commit that added research.md §7.
    - Its content is §7: `enouement` chosen, `eco-mcp` / `cairn` / `eco-harness` rejected with
      reasons, binary `enou` because the shorter forms were taken.
+5. **Acceptance lands with the first writer** (*added 2026-10-31*). `record` writes only drafts and
+   `accept` is the only writer of `records/`, so the two arrive together: a `record` that shipped
+   without `accept` would leave every capture stranded in the inbox, and an `accept` that shipped
+   without the trust predicate would let the first read path serve drafts. Order: trust predicate
+   → `record` (drafts) + `accept`/`reject` → any read path. The naming record of constraint 4 is
+   therefore written as a draft and accepted, like every record after it.

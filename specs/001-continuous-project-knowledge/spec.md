@@ -93,6 +93,52 @@ without a server, a network, or a particular agent vendor.
   (SC-002a) — does `why` return a record stating the known answer. Like backfilled records it
   measures retrieval, not capture quality: nobody was there to capture it at the time.
 
+### Session 2026-10-31
+
+- Q: Who is this for, and what vocabulary does it use? → A: **Solo developers, small startup teams
+  and solo builders** — someone working the way they would on a personal project. The vocabulary is
+  the repository's own: modules, paths, records, specs, commits, pull requests. Concepts from
+  enterprise project tracking (tracked tickets, story points, estimates, cycle times) are out of
+  scope, and no rule may presume a second person — "the author may not approve their own record"
+  is meaningless when there is one author.
+- Q: The PR diff was the only review gate (research.md §1). What stops an agent's record being
+  trusted when nobody read it — a solo developer pushing to `main`, or a reviewer skimming a long
+  diff? → A: **Inbox, then accept.** Every capture path writes a **draft** to a separate inbox,
+  never a record. A draft is not knowledge: no read path presents it unless explicitly asked, and
+  then labels it as a draft. A person turns a draft into a record with an explicit **accept**,
+  which validates it again, writes it to the record store, and removes the draft in one step. No
+  agent-facing tool surface offers acceptance. Immutability (FR-007, FR-034) begins at acceptance;
+  until then a draft may be edited or rejected. This supersedes the "engaged with, not adopted"
+  position in research.md §1, which is kept and marked rather than deleted (Principle IV).
+- Q: Does a draft clear an FR-015 flag? → A: **No.** Only an accepted record or a no-knowledge
+  statement clears it. `lint` reports the draft that would cover the change, so the remaining step
+  is visible rather than the flag looking unexplained.
+- Q: A draft may name a record in `supersedes`. When does the older record stop being current? →
+  A: **On acceptance of the newer one, never before.** Only accepted records participate in
+  supersession, so an unread draft cannot hide current knowledge.
+- Q: Acceptance may happen in a later commit than capture. Which commit is the implementing commit
+  (FR-002)? → A: The commit that **first added the file**, following the move from inbox to record
+  store — normally the capture commit. A draft that was never committed has the acceptance commit.
+- Q: "Why" accepts a symbol (US2 scenario 3), but nothing says how a symbol is resolved, and FR-016
+  must flag dangling symbols though records have no symbol field. → A: Records MAY declare
+  **file-anchored symbols** (`<path>#<name>`). A symbol question first matches records that declare
+  it; otherwise the symbol is resolved by a **literal definition search** over the tracked files:
+  exactly one defining file answers with that file's records, several are listed and none is
+  chosen, none is said plainly. Never a fuzzy or similarity match. A declared symbol dangles when
+  its file (followed through renames) no longer exists or no longer defines the name.
+- Q: FR-011 surfaces existing knowledge "before the spec is written" — in what form? → A: A
+  **brief**: for the paths a piece of work will touch, the records affecting them, the views of the
+  modules involved, and the gaps — paths in no declared module, declared modules with no knowledge,
+  drafts waiting for acceptance, current records that contradict each other, references that
+  dangle. It always states which checks it ran, so "no gaps" is distinguishable from "not checked".
+  It is a deterministic projection: no ranking and no model.
+- Q: When does `recall` (free-text search over records) ship? → A: It stays a refusing stub until a
+  ranker meets a bar **registered before the ranker is built**, on a blind judged query set, in
+  `bench/` (Principles II and V). The ranker must explain every score term by term, rank only
+  accepted current records, and decide abstention separately from ranking — a query with no
+  relevant record must be answered "no match", with the reason, not with the least-bad hit.
+  Embedding retrieval stays out of scope for v1.
+
 ## User Scenarios & Testing *(mandatory)*
 
 Stories are listed in priority order. Each names the story number from the original request, as
@@ -112,25 +158,35 @@ the new spec is written.
 also the only story that delivers value on its own with no other part built: a reviewer reading
 the PR sees the reasoning next to the diff, which is more than they get today.
 
-**Independent Test**: Complete a spec-kit feature, then inspect the PR diff. The decisions are
-present, each names its rejected alternatives, and each links to the spec and the commits.
-Nothing had to be requested.
+**Independent Test**: Complete a spec-kit feature, then inspect the PR diff. Drafts of the
+decisions are present, each names its rejected alternatives and links to the spec; nothing had to
+be requested. Accept them, and each record resolves its implementing commit (FR-002).
 
 **Acceptance Scenarios**:
 
 1. **Given** a spec-kit feature that changed three files and rejected one alternative approach,
-   **When** the feature is completed, **Then** a knowledge record exists for each thing learned or
-   decided, each carrying its kind and a one-line summary — and each record of kind `decision`
-   stating the choice, the reasoning and the rejected alternative — linking to the spec and to the
-   commits that landed it, with no explicit request from the developer.
+   **When** the feature is completed, **Then** a draft exists for each thing learned or decided,
+   each carrying its kind and a one-line summary — and each draft of kind `decision` stating the
+   choice, the reasoning and the rejected alternative — linking to the spec, with no explicit
+   request from the developer.
 2. **Given** decisions already recorded against `src/util/context.ts`, **When** a new spec-kit
    feature begins that will touch `src/util/context.ts`, **Then** those decisions are presented
-   to the author before the new spec is written. *(the second time)*
+   to the author before the new spec is written — at first as the "why" answer for each of those
+   paths, and once module views exist (US3) as a brief that also names the gaps around them
+   (FR-048). *(the second time)*
 3. **Given** a feature where nothing of consequence was learned or decided, **When** it is
-   completed, **Then** no empty or filler record is created, and the change instead carries a
+   completed, **Then** no empty or filler draft is created, and the change instead carries a
    recorded no-knowledge statement so that no un-clearable flag is left behind.
 4. **Given** captured decisions, **When** the PR is opened, **Then** the knowledge changes appear
    as readable additions in the ordinary diff, not as an opaque or generated blob.
+5. **Given** drafts an agent captured that nobody has read, **When** anyone asks why, renders a
+   view, or reads a file in the affected module, **Then** the drafts are not presented as
+   knowledge; they appear only when drafts are explicitly requested, labelled as drafts.
+6. **Given** a draft the developer has corrected by hand, **When** they accept it, **Then** the
+   record holds the corrected content in canonical form, the draft is gone, and from then on the
+   record can only be superseded or redacted.
+7. **Given** an agent working through the agent tool surface, **When** it tries to accept its own
+   draft, **Then** no such capability exists there; acceptance is a person's step.
 
 ---
 
@@ -157,6 +213,11 @@ the answer against the known answer — the decisions, in order, with correct li
    decisions affecting the file that defines it are returned.
 4. **Given** a file with no recorded decisions, **When** the question is asked, **Then** the
    answer says so plainly rather than inferring a rationale from the code.
+5. **Given** a symbol name defined in two different files, **When** the question names it,
+   **Then** both candidate files are listed and no records are returned for either until the
+   question names one — the answer never picks.
+6. **Given** a record that declares a symbol of a file, **When** the question names that symbol,
+   **Then** the record is returned even if no definition search is run.
 
 ---
 
@@ -216,7 +277,7 @@ knowledge was captured and the reminder fired exactly once.
 
 1. **Given** a session that changed code with no spec-kit feature, **When** the session is about
    to end or its context is about to be compacted, **Then** the developer is prompted to capture
-   the knowledge, and on acceptance it is recorded and linked to the commits.
+   the knowledge, and if they agree it is captured as drafts awaiting their acceptance.
 2. **Given** the reminder already fired once in a session, **When** the session later approaches
    another end-or-compaction point, **Then** it does not fire again. *(the second time)*
 3. **Given** a session that changed no code, **When** it ends, **Then** no reminder fires.
@@ -310,7 +371,7 @@ flag appears. Push the missing knowledge; confirm it clears.
 - A module declaration overrides N or the summary length limit. The override must apply to that
   module's view alone and must not change any other module's, and the view must still be
   byte-identical on every machine.
-- Automatic capture produces content that matches a secret pattern. The record must be refused
+- Automatic capture produces content that matches a secret pattern. The draft must be refused
   with the match reported, not written and cleaned up afterwards — the git extension may commit it
   first. The module then still shows an FR-015 flag, which is correct: the change genuinely has no
   recorded knowledge yet, and the developer must re-capture or record a no-knowledge statement.
@@ -322,6 +383,26 @@ flag appears. Push the missing knowledge; confirm it clears.
 - A success criterion's population turns out to be empty — no contemporaneous records yet, or no
   superseded ones in this history. It must be reported as "no data", never as 100% and never as a
   pass.
+- Drafts pile up because nobody accepts them. They must stay visible — `lint` and every brief
+  report how many are waiting and for which paths — and none of them may leak into an answer as
+  knowledge while it waits.
+- A person edits a draft by hand and breaks its form — an unquoted SHA, a summary over the cap, a
+  pasted credential. Acceptance must refuse with the reason, exactly as capture would have, rather
+  than accept a record that would then be immutable in a broken form.
+- A draft supersedes a record that a second, accepted record has already superseded. Acceptance
+  must refuse and name the newer record, so the chain stays a chain rather than forking.
+- A draft is rejected after being committed. It is gone from the inbox and git history still
+  holds it. The capture commit's `Knowledge-Record:` trailer may still name its id; trailer ids
+  resolve through the same trust rule as everything else, so that name resolves to nothing — no
+  answer cites it and no flag is cleared by it.
+- The same draft is accepted on two branches. The record id is the draft id, so both branches
+  write the same file with the same bytes and the merge is clean; different bytes are a conflict a
+  person resolves in the diff.
+- A symbol name is defined in more than one file, or only inside another definition. The answer
+  lists candidates or says nothing was found — it never picks one, and a missed nested definition
+  is a missing answer, never a wrong one.
+- A brief is asked for paths that are all outside every declared module. It returns no records,
+  reports every path as uncovered, and still lists the checks it ran.
 - The backfill is run before the question set is committed, or by a process that read it. The
   measurement is void: commit order is the evidence, and a result that cannot show the questions
   were committed first must not be reported.
@@ -345,15 +426,16 @@ flag appears. Push the missing knowledge; confirm it clears.
   survives squash, rebase and amend rather than becoming a dangling reference the moment history
   is rewritten. A record MAY carry a stored `commits` field **only when its provenance is
   `backfilled`**, where it points at history that already exists and will not move.
-- **FR-003**: System MUST capture knowledge records on completion of a spec-kit feature without
-  the developer explicitly requesting it.
+- **FR-003**: System MUST capture knowledge on completion of a spec-kit feature without the
+  developer explicitly requesting it. What capture produces is a draft (FR-043), not a record.
 - **FR-004**: System MUST offer to capture knowledge from work done outside spec-kit before a
   session ends or its context is compacted, and MUST make that offer at most once per session.
 - **FR-005**: System MUST NOT create a knowledge record when nothing of consequence was
   learned or decided. Such a change satisfies FR-015 through the recorded no-knowledge
   statement of FR-030 instead, so that declining to record never leaves an un-clearable flag.
 - **FR-006**: Users MUST be able to record and supersede a knowledge record of any kind
-  explicitly, without waiting for an automatic trigger.
+  explicitly, without waiting for an automatic trigger. An explicit capture is a draft like any
+  other (FR-043); there is no path that writes a record without acceptance.
 - **FR-007**: Knowledge records of every kind MUST be immutable once recorded and MUST be
   supersedable. A record MUST be able to name an earlier record that it supersedes, and the
   earlier record MUST be preserved rather than overwritten or deleted. Corrections are made by
@@ -371,6 +453,32 @@ flag appears. Push the missing knowledge; confirm it clears.
   never shortened, paraphrased, or cut at render time, and never generated after the fact by any
   other means.
 
+**Drafts and acceptance**
+
+- **FR-043**: Every capture path — spec-kit completion (FR-003), the session offer (FR-004), an
+  explicit capture (FR-006) and supersession — MUST write a **draft** to a store separate from
+  the records, never a record. A draft carries every field a record carries and MUST pass the same
+  validation at write time, including the secret scan of FR-035: a draft is a file in the working
+  tree, and the git extension may commit it before anyone reads it.
+- **FR-044**: A draft MUST become a record only through an explicit **acceptance** by a person.
+  Acceptance MUST validate the draft again — a person may have edited it — including the secret
+  scan, MUST write the record in canonical form, and MUST remove the draft, as one operation that
+  either completes or changes nothing. The record keeps the draft's identifier.
+- **FR-044a**: No tool surface offered to agents (the MCP server) MAY expose acceptance, rejection
+  or redaction. The command line necessarily exposes acceptance, so the system MUST document how to
+  deny it to an agent that has a shell — for Claude Code, a permission deny rule — and setup
+  tooling that writes agent configuration MUST include that rule.
+- **FR-045**: Drafts MUST NOT appear in a "why" answer, a current-truth view, a full log, the
+  read hook's output, a brief, or a recall result unless drafts are explicitly requested, and
+  when requested each MUST be labelled as a draft. Drafts MUST NOT take part in supersession, MUST
+  NOT clear an FR-015 flag, and MUST NOT be counted as current knowledge by any check.
+- **FR-046**: A draft MAY be edited or rejected before acceptance. Immutability (FR-007, FR-034)
+  applies from acceptance onward. Rejecting a draft deletes it; this is not erasure under
+  Principle IV, because no knowledge was ever recorded — and a draft that was committed remains in
+  git history.
+- **FR-046a**: Accepting a draft that supersedes a record MUST be refused when an accepted record
+  already supersedes that record, naming the newer one, so that a supersession chain never forks.
+
 **Retrieval**
 
 - **FR-008**: Users MUST be able to ask why a given file or symbol is the way it is and receive
@@ -380,7 +488,9 @@ flag appears. Push the missing knowledge; confirm it clears.
 - **FR-010**: System MUST state plainly when a file or symbol has no recorded knowledge, rather
   than inferring a rationale from the code itself.
 - **FR-011**: System MUST surface the existing knowledge records for the paths a new spec-kit
-  feature will touch, before that feature's spec is written.
+  feature will touch, before that feature's spec is written. In the first increment the form is
+  the "why" answer for each of those paths; once module views exist (US3), it is a brief
+  (FR-048).
 - **FR-012**: System MUST provide a module's current-truth view to an agent beginning work in
   that module, without being asked, and MUST provide nothing when the module has no recorded
   knowledge.
@@ -390,14 +500,44 @@ flag appears. Push the missing knowledge; confirm it clears.
   (FR-024). When records are left out, the view MUST state how many were omitted and name the
   command that renders the full log (FR-040).
 - **FR-014**: System MUST reflect subsequent knowledge changes in the current-truth view.
+- **FR-047**: A record MAY declare symbols, each anchored to a file as `<path>#<name>`. When a
+  "why" question names a symbol, the system MUST first look for records that declare it. When
+  none does, it MUST resolve the symbol by a literal search for its definition in the tracked
+  files. In both cases the **one-file rule** applies: exactly one file answers with that file's
+  records; more than one MUST be listed as candidates with no records returned for any — two
+  declarations of the same name in different files are as ambiguous as two definitions; none MUST
+  be stated plainly. A question MAY name the file (`<path>#<name>`) to remove the ambiguity. An
+  argument that is, or ever was, a tracked path is a path question, not a symbol question, so a
+  deleted or renamed file still answers from its records (FR-037, FR-038). Resolution MUST
+  NOT use fuzzy, partial or similarity matching, and MUST NOT depend on any index that could be
+  out of date.
+- **FR-048**: Users MUST be able to request a **brief** for a set of paths. A brief MUST contain
+  the accepted records affecting those paths, the current-truth view of each declared module they
+  fall in, and the gaps: paths in no declared module, declared modules with no knowledge, drafts
+  waiting for acceptance that touch those paths, current records that contradict each other, and
+  references that dangle. It MUST list every check it ran, so that an empty gap list is
+  distinguishable from a check not being run. A brief MUST be a deterministic projection: the same
+  records and paths produce the same bytes, with no ranking and no model.
+- **FR-049**: Free-text search over records (`recall`) MUST refuse, returning no results, until a
+  ranker meets a bar that was registered before the ranker was built, measured in `bench/` on a
+  blind judged query set that includes queries with no relevant record. Once shipped, a recall
+  result MUST explain each score term by term, MUST rank only accepted current records, and MUST
+  decide abstention separately from ranking: a query with no relevant record MUST be answered as
+  "no match" with the reason, never with the least-bad hit.
 
 **Integrity**
 
 - **FR-015**: System MUST flag, on a pull request, any declared module whose code changed while
-  its knowledge did not. The flag MUST clear when **either** a knowledge record covers the
-  change **or** the change carries the recorded no-knowledge statement of FR-030.
+  its knowledge did not. The flag MUST clear when **either** an accepted knowledge record covers
+  the change **or** the change carries the recorded no-knowledge statement of FR-030. A draft that
+  would cover the change does not clear the flag; the flag MUST name it, so the remaining step is
+  acceptance (FR-045).
 - **FR-016**: System MUST flag, on a pull request, any knowledge record referencing a file,
-  symbol, or commit that no longer exists.
+  symbol, or commit that no longer exists. A declared symbol (FR-047) no longer exists when its
+  file, followed through renames, is gone or no longer defines the name.
+- **FR-050**: The integrity check MUST report the drafts waiting for acceptance — how many, and
+  which paths they touch — as information, never as a failure: a draft is work in progress, not a
+  defect.
 - **FR-017**: System MUST clear a flag automatically once the gap that raised it is closed, with
   no manual dismissal step. A recorded no-knowledge statement (FR-030) is not a manual
   dismissal: it is part of the change itself, reviewable in the diff, and it closes the gap
@@ -498,9 +638,10 @@ flag appears. Push the missing knowledge; confirm it clears.
 - **FR-041**: Knowledge records MUST be stored flat, in one namespace, rather than in per-module
   directories. A record's module membership MUST be computed at render time from the module
   declarations in force, including their `formerly` aliases (FR-037), so that re-declaring or
-  renaming a module never requires moving or rewriting an immutable record.
+  renaming a module never requires moving or rewriting an immutable record. Drafts are stored the
+  same way, flat, in their own store (FR-043).
 
-- **FR-028**: System MUST reflect a newly recorded or newly superseded record in the current-truth
+- **FR-028**: System MUST reflect a newly accepted or newly superseded record in the current-truth
   view without a separate update step.
 - **FR-032**: The projection MUST be reproducible: the same set of records MUST produce a
   byte-identical view, on any machine, with no network access and no model involved.
@@ -541,6 +682,18 @@ flag appears. Push the missing knowledge; confirm it clears.
 - **No-knowledge statement**: A durable, reviewable assertion carried by a change itself, saying
   that the change taught the project nothing worth recording. It closes an FR-015 flag without
   creating a record, and it is what SC-007 counts as an explicit, recorded decline.
+- **Draft**: A knowledge record that nobody has accepted yet — the only thing any capture path
+  writes. Same fields and same validation as a record, kept in its own store, editable and
+  rejectable, and never presented as knowledge unless drafts are explicitly requested.
+- **Acceptance**: A person's explicit step that turns a draft into a record: validate again, write
+  canonically, remove the draft. The record keeps the draft's identifier. Not available to agents
+  through the agent tool surface.
+- **Declared symbol**: A `<path>#<name>` anchor on a record, naming a definition in a file. It is
+  what lets "why" answer a symbol question without searching, and what lets the integrity check
+  tell that a symbol has gone.
+- **Brief**: A deterministic projection for a set of paths about to be worked on: the records
+  affecting them, the views of their modules, the gaps around them, and the list of checks run.
+  Never ranked, never synthesised.
 
 ## Success Criteria *(mandatory)*
 
@@ -563,6 +716,13 @@ process MUST NOT read that file. Results MUST be reported separately for the two
 populations (FR-036) and never merged: backfilled records measure **retrieval only**, since their
 links are correct by construction; contemporaneous records measure **capture quality and
 retrieval**.
+
+*Added 2026-10-31.* Backfill now produces drafts that a person accepts (FR-043, FR-044), and the
+person who accepts them in this repository is the one who wrote the questions. So until the
+question set is revealed, a backfilled draft MUST be accepted or rejected **unedited**: an accepted
+backfilled record's bytes equal its draft's bytes as first committed, which git history shows and
+the protocol check verifies. An edit made with the questions in mind is exactly the leak the blind
+protocol exists to prevent.
 
 Numeric targets remain provisional defaults; the clarification sessions set the reporting rules
 rather than the thresholds.
@@ -590,10 +750,11 @@ rather than the thresholds.
   across every declared module, with zero exceptions.
 - **SC-006**: A developer or agent gets a usable answer to "why is this like this?" in under 30
   seconds, without leaving the repository or consulting a person.
-- **SC-007**: Of features completed through spec-kit, 100% produce knowledge records with no
-  explicit request; of sessions that changed code outside spec-kit, at least 80% end with either
-  knowledge captured or a recorded no-knowledge statement (FR-030). Both figures reported as
-  *k/N*.
+- **SC-007**: Of features completed through spec-kit, 100% produce drafts with no explicit
+  request; of sessions that changed code outside spec-kit, at least 80% end with either drafts
+  captured or a recorded no-knowledge statement (FR-030). Both figures reported as *k/N*. What
+  happens to the drafts afterwards — accepted, edited, rejected — is reported alongside, *k/N* each,
+  and is not part of this criterion: acceptance is a person's judgement, not capture's.
 - **SC-008**: Every flag raised on a pull request clears on its own once the gap is closed —
   whether closed by a knowledge record or by a no-knowledge statement — with no manual dismissal,
   reported as *k/N* over the evaluation set.
@@ -604,10 +765,21 @@ rather than the thresholds.
 - **SC-011**: Rendering a module's current-truth view twice from an unchanged set of records
   produces byte-identical output, across every declared module, with zero exceptions — the
   measurable form of "projection, not synthesis".
-- **SC-012**: Zero records containing a secret matched by the published patterns are ever written
-  by capture, measured over the evaluation set and over a seeded corpus of known secret shapes;
+- **SC-012**: Zero drafts or records containing a secret matched by the published patterns are
+  ever written by capture or by acceptance, measured over the evaluation set and over a seeded
+  corpus of known secret shapes;
   and every edit to an already-recorded file that is not a conforming redaction is rejected,
   reported as *k/N* over attempts.
+- **SC-013**: Zero drafts are presented as knowledge on any read path — "why", view, full log,
+  read hook, brief — without the explicit drafts request, measured over the evaluation set with
+  drafts seeded alongside every record population, reported as *k/N* over read calls. A secret
+  seeded into an edited draft is refused at acceptance in every attempt, reported as *k/N*.
+- **SC-014**: Every brief lists the checks it ran, and two briefs over unchanged records and paths
+  are byte-identical, across every declared module, with zero exceptions.
+- **SC-015**: `recall` ships only if, on the blind judged set, it meets every threshold registered
+  before the ranker was built — reported as *k/N* per measure, with the share of no-relevant-record
+  queries answered "no match" reported separately from ranking quality and never merged into it.
+  Until then, every recall call refuses (tested).
 
 ## Assumptions
 
@@ -616,9 +788,15 @@ rather than the thresholds.
   a convention the codebase follows. Routine changes that teach nothing are not recorded — FR-005
   keeps the log free of noise, and FR-030's no-knowledge statement is how such a change still
   closes its flag.
-- **The developer reviews before it lands.** Automatic capture writes into the working tree and is
-  reviewed in the PR like any other change. "Without me asking" (request story 1) is read as "not
-  having to request capture", not as "committed without review".
+- **The developer reviews before it lands.** Automatic capture writes drafts into the working
+  tree; a person accepts them before they count (FR-043–FR-046). "Without me asking" (request
+  story 1) is read as "not having to request capture", not as "trusted without review".
+  *Amended 2026-10-31: this assumption originally made the PR diff the whole review mechanism. A
+  solo developer pushing to `main` never opens one, and a long diff of agent-written records is
+  easy to skim, so acceptance is now an explicit step that does not depend on a PR existing.*
+- **The audience is a solo developer or a small team.** One person may be author, reviewer and
+  merger at once. Every rule is written so that it still means something with one person, and
+  nothing assumes a separate approver, a ticket tracker, or estimation.
 - **Integrity flags are advisory in v1** — visible to the reviewer, not blocking the merge. A
   blocking gate is a team workflow decision that can be turned on later once flag volume is known
   to be low.
@@ -645,7 +823,9 @@ rather than the thresholds.
   no longer written by a model at all, which removes a class of drift and makes the output
   testable by comparison rather than by judgement. The existing tools' behaviour changes with this
   feature rather than sitting alongside it, and migrating what is already written into knowledge
-  records is part of the backfill in SC-001.
+  records is part of the backfill in SC-001. *Made explicit 2026-10-31:* the two Context Pack
+  tools are **removed** and replaced by the tool list in contracts/cli.md (MCP server); the removal
+  is recorded in the commit that makes it, and `test/client.ts` asserts it stays removed.
 - **Spec-kit is present** and the git extension's auto-commit hooks may be enabled; both are
   treated as fixed constraints to coexist with, not as things this feature may change.
 - **Claude Code is the reference agent** for automatic triggers. Other agents get the same
@@ -658,6 +838,12 @@ rather than the thresholds.
 ## Out of Scope (v1)
 
 - Personal memory that follows a developer across projects.
-- Vector databases and embedding-based retrieval.
+- Vector databases and embedding-based retrieval, including low-storage approximate indexes. An
+  exact dense arm MAY be studied in `bench/` (research.md §14); nothing ships from it in v1.
 - Hosted or networked services of any kind.
 - Jev reranking, which remains a `bench/` research experiment.
+- Code-graph indexes — call graphs, impact analysis, dependency edges. Symbol questions are
+  answered by declared symbols and a literal definition search (FR-047), not by a graph.
+- Work tracking and estimation: importing tickets from a tracker, story points, estimates, cycle
+  times, or any forecast. Knowledge records say why the code is the way it is; they are not a
+  work log.

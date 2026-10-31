@@ -10,8 +10,8 @@ contains logic of its own, so a hook can never disagree with the command a devel
 
 | Where | When | Blocking |
 |---|---|---|
-| `.githooks/pre-commit` | every commit | exit 2 blocks the commit |
-| `.githooks/pre-push` | every push | exit 2 blocks the push |
+| `.githooks/pre-commit` | every commit | exit 2 or 3 blocks the commit; exit 1 does not |
+| `.githooks/pre-push` | every push | exit 2 or 3 blocks the push; exit 1 does not |
 | `.github/workflows/knowledge.yml` | every push and PR | annotates; blocking is a repo setting |
 
 **The CI check reads the PR's commits, not the merge commit.** Squash merges recompose the commit
@@ -47,18 +47,24 @@ one that captures is a **prompt** — which is where US1's quality actually live
 
 | Spec-kit hook | Extension command | What the prompt does |
 |---|---|---|
-| `before_specify` | `speckit.enouement.recall` | runs `enou why --paths <feature paths> --json` and puts the existing records in front of the author before the spec is written (FR-011) |
-| `before_plan` | `speckit.enouement.recall` | the same records, at planning time |
-| `after_implement` | `speckit.enouement.capture` | instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item — **or**, if nothing was learned, to add a `Knowledge-None:` trailer (FR-003, FR-005, FR-030) |
+| `before_specify` | `speckit.enouement.brief` | runs `enou brief <expected paths> --json` and puts the existing records, module views and gaps in front of the author before the spec is written (FR-011, FR-048) |
+| `before_plan` | `speckit.enouement.brief` | the same brief, at planning time, over the paths the plan names |
+| `after_implement` | `speckit.enouement.capture` | instructs the agent to extract every decision, invariant, gotcha and convention from the finished feature and call `enou record` once per item — **or**, if nothing was learned, to add a `Knowledge-None:` trailer (FR-003, FR-005, FR-030). It ends by listing the drafts it wrote and telling the person to read them and run `enou accept` — it never accepts them itself (FR-044a) |
+
+*Amended 2026-10-31*: the `before_*` command was called `speckit.enouement.recall` and ran `why`.
+It is renamed `brief` because `recall` now names the free-text ranker of FR-049, which is a
+different thing and does not ship in v1; one name for two things would make the prompt and the
+command disagree.
 
 The capture prompt is the difference between a knowledge store that fills with useful records and
 one that fills with restatements of the diff. It is specified and reviewed as its own artefact,
 not written incidentally while wiring the hook.
 
 **Ordering is load-bearing.** `after_implement` capture MUST run **before** the git extension's
-`speckit.git.commit`, so the records land in the same commit as the work they describe rather than
-trailing it. In `.specify/extensions.yml` the `after_implement` list is ordered `enouement` first,
-`git` second. If that order inverts, records are committed one commit late and every
+`speckit.git.commit`, so the drafts land in the same commit as the work they describe rather than
+trailing it — which is what makes that commit the implementing commit once they are accepted
+(data-model §2.7). In `.specify/extensions.yml` the `after_implement` list is ordered `enouement`
+first, `git` second. If that order inverts, drafts are committed one commit late and every
 `Knowledge-Record:` trailer points at the wrong commit — a silent corruption, so the ordering
 needs a test, not a comment.
 
@@ -79,6 +85,31 @@ is a US3 blocker, not an MVP one: US1 and US2 do not depend on it.
 The hook resolves the read file to a declared module and suppresses if that module was already
 injected this session. If the read path belongs to no declared module, or the module has no
 records, the hook emits **nothing**: no placeholder, no empty section (FR-012).
+
+**Only records.** Drafts are never injected (FR-045). An agent's unread draft reaching the next
+agent's context as if it were knowledge is exactly what the inbox exists to prevent.
+
+**File-specific records, after the module view** (*added 2026-10-31*). The module view holds the
+top N summaries for the whole module, so a gotcha about one particular file can be selected out of
+it in a large module. After the view, the hook adds the current records whose `paths` match the
+read file **more specifically than the module** — exact file first, then the deepest enclosing
+directory — that are not already in the view and were not already injected this session, up to a
+limit `view.max_file_records` (a `modules.yaml` key with a published default, overridable per
+module like the other view limits of FR-013). The rules that keep this honest:
+
+- the already-injected filter runs **before** the limit, never after it — otherwise records past
+  the limit could never be delivered;
+- nothing is shortened: each line is a record id and its one-line summary, already bounded by the
+  summary cap at capture (FR-031 — summaries are never cut at render time);
+- when more records qualify than the limit allows, an **overflow line** names every remaining id
+  and the command that shows them (`enou why <file>`), so none is stranded silently;
+- dedup uses the same marker directory: one marker per module, as before, plus **one marker per
+  file**, claimed with the same exclusive create. The file-specific lines are computed once, on the
+  first read of that file in the session.
+
+Path comparison uses the repository-relative form from contracts/cli.md (Repository root), after
+resolving symbolic links on both sides, so a symlinked checkout does not make every file look
+outside the repository.
 
 ### Deduplication state — a marker file outside the tree, not memory
 
@@ -116,6 +147,31 @@ This is the one Claude-Code-specific surface in the design. Principle III is sat
 CLI equivalent is not a degraded path — it renders the identical bytes (FR-032), and the hook
 itself calls it.
 
+### Coexistence: tools that replace `Read` (*added 2026-10-31*)
+
+Some code-intelligence MCP servers instruct the agent to read code through their own tools
+instead of `Read` (research.md §15). In a session with one of them installed, a `PostToolUse(Read)`
+hook may rarely or never fire, and module views silently stop arriving — silent degradation, which
+Principle II prohibits. v1 does not chase other tools' input formats. Instead:
+
+- the documented setup states the limitation, and `enou brief` / `enou view` remain the explicit
+  path (FR-022);
+- a `SessionStart` hook (the same registration that clears markers on `compact`) MUST emit one
+  short line naming the declared modules that have knowledge and the command that shows them, so
+  an agent whose reads bypass `Read` still learns, at the point of use, that the knowledge exists.
+  Documentation alone is not the point of use. The line is a fixed projection of `modules.yaml`
+  plus record counts — and the count of drafts waiting, with `enou drafts` — deterministic, behind
+  the same tier-1 pre-filter (so FR-042 holds), and empty when there is nothing to name.
+
+### Denying acceptance to agents (*added 2026-10-31*)
+
+The MCP server has no accept, reject or redact tool (FR-044a), but an agent with a shell can run
+`enou accept` directly. The documented Claude Code setup therefore adds permission deny rules for
+`enou accept`, `enou reject` and `enou redact` in the project's settings. Deny rules are matched against the
+command text, so they stop the ordinary case — an agent tidying up its own drafts — rather than a
+determined workaround; the move from `inbox/` to `records/` remains visible in every diff
+regardless, which is the backstop.
+
 ## 4. Capture outside spec-kit (increment US4)
 
 A session-end / pre-compaction hook offers capture at most once per session (FR-004). Declining
@@ -127,6 +183,10 @@ Two constraints taken from prior art (research.md §1), both learned from projec
 - **The hook must not do the work.** Claude Code's `SessionEnd` hooks share a ~1.5-second budget.
   The hook enqueues and exits; a detached worker does the capture. Doing it inline will be killed
   mid-write.
+- **What the worker writes is drafts** (FR-043), like every capture path — never records. The
+  session has ended by then, so the person learns of them at the point of use: the next
+  `SessionStart` line counts the drafts waiting (§3, Coexistence), and `lint` and every `brief`
+  list them (FR-050). They become records only when the person runs `enou accept`.
 - **`SessionEnd` and `PreCompact` both fire, and will double-write.** "At most once per session"
   needs more than intent: guard with a state key over the transcript's `size:mtime`, an exclusive
   non-blocking lock, **and** an idempotency check on the write itself. A project that used one
@@ -221,8 +281,10 @@ at — the docs specify which shell is used but do not address POSIX semantics o
 
 ### Tier 2 — store present, but module or dedup miss
 
-`enou` starts, finds the path belongs to no declared module or that this module was already
-injected this session, and exits.
+`enou` starts, finds the path belongs to no declared module, or that **both** this module's marker
+and this file's marker already exist this session (§3), and exits. Both are checked by the
+existence of a marker file alone — the file-specific lines of §3 are computed only on the first
+read of each file, so a repeat read never needs to open a record to know it has nothing new.
 
 **Budget, relative:** p95 ≤ (p95 of an empty program on the same runtime, measured in the same
 run) + 5 ms.
@@ -232,7 +294,7 @@ the machine; our 5 ms of work does not. An absolute number would encode today's 
 test that CI has to satisfy.
 
 Tier 2 must still open **no record file**. The check order is fixed: store present (tier 1),
-module membership, per-session dedup, and only then records.
+module membership, per-session dedup (module marker, then file marker), and only then records.
 
 ### Injecting path — unchanged
 

@@ -65,6 +65,10 @@ That is the gap SC-001…SC-012 exist to fill.
 
 ### Engaged with, not adopted — the accept gate
 
+> **Superseded 2026-10-31 by §12.** The accept gate is now adopted, as an inbox and an explicit
+> `accept`. The reasoning below is kept as it was written, per Principle IV; §12 says what changed
+> and why.
+
 **All three projects independently converged on a human accept gate between extraction and durable
 storage**: VampiricCyborg stages to `staging/` for `cairn review`; asitha-w gives producers only
 `gh_*` and `Log` while a human owns every judgement field; cairnkeep stages at `SessionEnd` and
@@ -84,6 +88,11 @@ cover, and it is the argument for that hook, not only for CI.
 cairnkeep ships **27 MCP tools and ~230 Markdown docs** for a memory layer. This repository removed
 five of seven tools in 2026 for being unmeasured or wrong; the two-tool surface is a deliberate
 inversion of that trajectory. Complexity is the failure mode most visible in the prior art.
+
+> *Note 2026-10-31.* This feature removes those two tools and replaces them with seven
+> (contracts/cli.md, MCP server). The caution still holds and is applied as a rule rather than a
+> count: every MCP tool is a view of exactly one CLI command, generated from the same command
+> definition, so the surface cannot grow anything the CLI does not already have and test.
 
 ## 2. Record volume at a 10-year horizon — **derived**
 
@@ -350,3 +359,157 @@ method rather than weakening the result:
 
 Measured here only that both git operations cost ~1 ms on this 25-commit repository — too small to
 extrapolate from, and recorded so no one mistakes it for a result.
+
+*Added 2026-10-31:*
+
+| Unknown | Why it matters | Task |
+|---|---|---|
+| Literal definition search (§15) on a repository of 10⁴–10⁵ tracked files | `why <symbol>` runs it per query when no record declares the symbol | **T039c**, with a committed harness, before the US2 increment closes |
+| `brief` latency over many paths | it runs `why` per path plus module views; it must stay usable from a spec-kit hook | **T055h**, once `brief` exists |
+| Whether any CPU-only embedding setup gives identical top-k across x86 and ARM | the precondition for even studying a dense arm under FR-032 (§14) | Only if §14's study is ever run |
+
+## 12. The accept gate — **decision, 2026-10-31**
+
+**What changed.** §1 recorded that all three prior-art projects put a human accept step between
+extraction and durable storage, and argued that a committed store made the PR diff that gate. Two
+things undo the argument for the people this tool is for (§16):
+
+- **A solo developer usually has no PR.** §1 named this hole and pointed at the local `lint` hook
+  to cover it; but `lint` can check form, not whether anyone *read* an agent's record.
+- **A diff is not a reading.** A feature's capture can write several records at once into a large
+  diff; approving the PR approves them whether or not anyone read them. Merge is a gate on the
+  change as a whole, not on each piece of knowledge in it.
+
+**Decision**: every capture path writes a **draft** to `.knowledge/inbox/`; a person turns a draft
+into a record with `enou accept`, which validates it again and moves it to `.knowledge/records/`
+under the same identifier. Reads ignore drafts. The MCP server offers no acceptance; the
+documented Claude Code setup denies `enou accept`, `enou reject` and `enou redact` to the agent.
+
+**Rejected alternatives**
+
+| Alternative | Why not |
+|---|---|
+| Keep the PR as the gate (status quo) | no gate at all for a solo developer pushing to `main`; a merged PR approves every record in it unread |
+| Store an approval in the record (`approved_by`, `approved_at`, a status) | a second mutable source of trust next to the file's location; an agent can type it into its own draft; and it makes acceptance an *edit* of a supposedly immutable record — two exceptions to FR-007 instead of one |
+| Approval recorded as a commit trailer by someone other than the author | meaningless with one person; trailers are already shown (formats §3) to be fragile under squash merges |
+| A gitignored staging area | drafts never reach a teammate's review, and a draft written by one machine's agent is invisible on another — the opposite of FR-019 |
+
+**Why the location is the right carrier.** It is visible in every diff as a move, it needs no field
+in the record, and it costs no exception to immutability: a draft was never a record, so editing
+or deleting it does not touch Principle IV, and from the moment it is a record nothing about it
+changes except by redaction.
+
+**What it does not stop**: an agent with a shell that is not under a deny rule, or a person who
+moves files by hand. Both are visible as moves in the diff. The gate is meant to stop knowledge
+being trusted *without anyone choosing to*, not to resist someone determined.
+
+## 13. `recall` — **what has to be true before it ships**
+
+`recall` stays a refusing stub in v1 (FR-049). This section fixes, ahead of time, what the
+experiment in `bench/` must look like, so the bar cannot be set after the results are seen.
+
+**The protocol** (all of it registered before a ranker exists):
+
+1. A judged query set written **before** the ranker, committed as a hash first in the same way as
+   tasks.md T019a, and revealed after the ranker is frozen.
+2. It MUST include queries with **no** relevant record, and queries whose wording shares no
+   content word with the relevant record (the "word-mismatch slice"). A set where every query
+   repeats its record's title measures string matching and nothing else.
+3. Measures: Recall@5 and MRR on answerable queries; the share of no-relevant-record queries
+   answered "no match"; each reported as *k/N*, and the two kinds never merged into one figure.
+4. Thresholds for all three are written into the protocol file before the ranker is built.
+5. Where a public issue tracker is used as an outside corpus, each query sees only items resolved
+   before it was created, so document statistics never see the future.
+
+**Design constraints the ranker must meet** — each is *derived*, from the structure of BM25 and of
+the records, not measured here:
+
+- **Explainable.** Every score decomposes into `{term, field, tf, idf, contribution}` entries that
+  sum to it. A score nobody can explain is a score nobody can debug.
+- **Fields that carry meaning.** Title/summary, `paths`, module and kind as their own boosted
+  fields (borrowing the "prefix the chunk with its path and context" idea of §14 for keyword
+  search); the body as content only — Markdown headings shared by every record would otherwise
+  match every query that uses their words.
+- **Rank, then abstain, as two decisions.** A minimum-match rule counted over the *whole* query
+  scales with query length: a long, natural question then requires dozens of shared terms and
+  excludes the record it is about. Ranking should rank; whether to answer at all is a separate rule
+  — for example, a minimum number of matched rare terms, or the top score relative to the query's
+  score against itself — measured on the no-match queries, not assumed.
+- **Trust before statistics.** Document frequencies and lengths come from accepted current records
+  only; drafts and superseded records never shape the scores of what is shown.
+- **Deterministic.** Ties broken by identifier.
+
+**Implementation note**: Bun's built-in SQLite has FTS5 with `bm25()` (cited from the research
+probe of 2026-10-31; platform coverage unverified). It is not needed at the 10⁴ design volume, and it
+does not return per-term contributions, so it does not meet the first constraint on its own.
+
+## 14. Dense and approximate retrieval (LEANN) — **cited, rejected for the product**
+
+**What it is** (cited: arXiv 2506.08276; source read at github.com/StarTrail-org/LEANN, commit
+07796bd, 2026-10-29): a graph vector index that stores the graph and compressed codes, drops the
+embeddings, and recomputes embeddings for the nodes a query visits. The paper's case is storage at
+10⁶–10⁸ chunks: 4 GB against 188 GB for HNSW on its 60M-chunk corpus, at retrieval latencies of
+about 1–7 s per query on a desktop GPU (cited, paper Tables 1–2).
+
+**Why it does not fit** — each point is about this product's constraints, not the paper's quality:
+
+- **Wrong problem.** It saves storage at a scale two to four orders of magnitude above the 10⁴
+  records of §2. At 10⁴, exact search over full vectors is small and needs no approximation
+  (derived).
+- **Breaks FR-021, FR-032 and Operating Constraints.** It adds a Python and PyTorch runtime with a
+  native build; its default embedding model depends on the hardware it runs on and falls back to
+  downloading it (network); GPU settings in the source are non-deterministic; it runs a background
+  embedding server (cited, source). None of that can produce byte-identical output on every machine.
+- **No natural "no match".** Similarity search always returns neighbours, while a keyword ranker
+  with zero shared terms scores zero (derived). Principle II needs the abstention signal.
+- **Its coding-agent comparison is not against keyword search.** The repository's agent benchmark
+  compares against the agent's own tools with LEANN absent, not against a BM25 arm (cited, source
+  of the benchmark scripts), so it does not answer the question this section would need answered.
+
+**Kept as ideas**: put a record's paths and module into keyword fields (§13); if ranks are ever
+fused, use reciprocal rank fusion or normalised scores — never a raw weighted sum of differently
+scaled scores, which is what its hybrid mode does (cited, source).
+
+**If the semantic question is ever studied**: an *exact* dense arm in `bench/`, judged on §13's
+word-mismatch slice and its no-match queries, plus a cross-machine determinism check (§11). It
+earns a decision record only by winning on mismatch without losing abstention, and even then it
+ships opt-in and labelled (Principle VI).
+
+## 15. Code-graph tools (codegraph) — **cited, not adopted; one idea borrowed**
+
+**What was considered** (cited: github.com/colbymchenry/codegraph, the most-starred project of that
+name and the one built for coding agents; source read at v1.6.2): tree-sitter parsing to a SQLite
+graph of definitions and call edges, served over MCP. Relevant facts from its source and docs:
+
+- its index is derived and kept in `.codegraph/`, which ignores itself (`.gitignore` containing
+  `*`) so it can never be committed — a pattern worth copying for any cache this project adds;
+- its own drift study reports that an incrementally synced index had about 4% wrong call edges
+  while definitions matched a rebuild exactly (cited, its `docs/benchmarks`);
+- telemetry and an update check are on by default (cited, source), which no path of this product
+  may depend on (Operating Constraints);
+- its MCP instructions tell the agent to read code through its tools **instead of `Read`** (cited,
+  source) — the coexistence risk recorded in contracts/hooks.md §3.
+
+**Decision**: no dependency. What `why` needs is symbol → defining file, which is the reliable part
+of such a graph and needs no graph: a literal definition search with `git grep` over the tracked
+files (FR-047). It works at any revision without a checkout, leaves nothing to go stale, and adds
+no dependency. Its failure mode is a missing answer — a nested member it cannot see — never a wrong
+one, and an ambiguous name is listed rather than resolved.
+
+**Borrowed**: exact match or nothing, with ambiguity reported (its symbol lookup behaves this way);
+and the rebuild-against-rebuild check as the method for testing FR-032's byte-identical
+projection — compare sets, with a second clean render as the control.
+
+**Not yet measured**: the search's cost at scale (§11). One run of a scratch probe on a 1,277-file
+TypeScript repository answered in well under a second per symbol. Its harness is not committed, so
+under Principle I it is **not a result** and supports no claim here; it only motivated task T039c,
+which measures the search with a committed harness.
+
+## 16. Audience — **decision, 2026-10-31**
+
+**Decision**: this tool is for solo developers, small startup teams and solo builders.
+
+**Consequences, each carried into the spec**: no rule presumes a second person (spec.md,
+Assumptions); acceptance is something one person does for their own agent's drafts (§12); no
+ticket-tracker import, estimate, cycle time or forecast (spec.md, Out of Scope); the vocabulary
+stays the repository's own — modules, paths, records, specs, commits, pull requests.

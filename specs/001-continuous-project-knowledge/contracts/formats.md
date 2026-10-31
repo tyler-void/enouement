@@ -4,7 +4,11 @@
 states what is *guaranteed* about them. These files are committed, read by humans in diffs, and
 parsed by tooling — so their compatibility rules are a contract, not an implementation detail.
 
-## 1. Record file — `.knowledge/records/<ULID>.md`
+## 1. Record file — `.knowledge/records/<ULID>.md` · draft file — `.knowledge/inbox/<ULID>.md`
+
+A draft and a record share **one format**; everything in this section applies to both, except
+that a draft is not yet immutable. Which directory a file is in is the only thing that makes it a
+draft (data-model §1). Acceptance moves a file from `inbox/` to `records/` under the same name.
 
 **Guaranteed**
 
@@ -24,10 +28,18 @@ parsed by tooling — so their compatibility rules are a contract, not an implem
   style preference: unquoted scalars lose data silently on Bun 1.4.0 — an all-digit short SHA
   becomes a number and drops its leading zero, and a summary beginning `#` becomes `null`
   (research.md §9). `lint` enforces the round-trip.
-- **The implementing commit is not stored.** It is derived as the commit that added the record
-  file (`git log --diff-filter=A -- <path>`), which survives squash, rebase and amend. The
-  optional `commits` field is for **backfilled** records only, pointing at history already on
-  `main`.
+- **The implementing commit is not stored.** It is derived as the oldest commit that added the
+  file under either `inbox/` or `records/` (data-model §2.7), which survives squash, rebase,
+  amend, and acceptance in a later commit. The optional `commits` field is for **backfilled**
+  records only, pointing at history already on `main`.
+- **Paths are normalised.** Every `paths` entry and the path part of every `symbols` entry is
+  repository-relative with `/` separators, no leading `./`, no repeated `/`, no `..` segment, and
+  never absolute. A writer refuses anything else rather than repairing it.
+- **Symbols are file-anchored.** A `symbols` entry is `<path>#<name>`. There is no unanchored form:
+  a bare name would match an unrelated definition elsewhere and report it as "still exists".
+- **Bytes are fixed:** UTF-8, no byte-order mark, `\n` line endings. Setup adds
+  `.knowledge/** text eol=lf` to `.gitattributes`, because a checkout that converts line endings
+  would break the byte-identical round trip on every record at once.
 
 **Compatibility**
 
@@ -37,8 +49,12 @@ parsed by tooling — so their compatibility rules are a contract, not an implem
 - Unknown keys are preserved on read and never dropped on rewrite, so an older tool cannot silently
   strip a newer tool's field.
 
-**Deliberately absent**: no `status` key. Supersession is computed from whether another record
-names this one (data-model §2.2). A stored status could go stale; a computed one cannot.
+**Deliberately absent**: no `status` key, and no approval or reviewer key. Supersession is computed
+from whether another *record* names this one (data-model §2.2); draft-ness is computed from the
+directory. A stored status could go stale, and a stored approval is a field an agent can type into
+its own draft. A move from `inbox/` to `records/` can also be done by hand, but it shows up in
+every diff as exactly that move, so it is reviewed as acceptance rather than slipping in as an
+edit.
 
 ## 2. Module declarations — `.knowledge/modules.yaml`
 
@@ -67,8 +83,12 @@ Two trailers, both plain text in the commit message, both visible in `git log` w
 | `Knowledge-Record: <ULID>[,<ULID>...]` | this commit implements these records | FR-002, consumed by `why` |
 | `Knowledge-None: <reason>` | this change taught nothing worth recording | FR-030, closes an FR-015 flag |
 
-**Guaranteed**: a commit carrying neither, that touches a declared module, raises a flag. A commit
-carrying both is a contradiction and `lint` reports it rather than picking one.
+**Guaranteed**: a commit that touches a declared module raises a flag unless it carries a
+`Knowledge-None:` trailer or a `Knowledge-Record:` trailer naming at least one **accepted** record
+covering that module. Trailer ids are resolved through the trust predicate (data-model §2.2): an
+id that is a draft, or a draft since rejected, neither clears a flag nor appears in a `why` answer
+— the trailer is history, and the record it promised does not exist yet, or ever. A commit carrying
+both trailers is a contradiction and `lint` reports it rather than picking one.
 
 **Squash merges strip trailers.** A squash merge composes a new commit message from the branch's
 commits, and a `Knowledge-None:` trailer written on an individual commit can fall outside the
