@@ -1,0 +1,64 @@
+# enouement — the CI half of enforcement (contracts/hooks.md §1, tasks.md T066–T067).
+#
+# Tests block. The knowledge lint runs the same `enou lint` the local hooks run, over the pull
+# request's own commits — so a squash merge cannot lose a `Knowledge-None:` statement — and is
+# advisory in v1 (spec.md, Assumptions): its findings are shown, and a failure does not block the
+# merge. Making it blocking is a repository setting, once flag volume is known to be low.
+
+name: enouement
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enouement-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history, so the range and its commit messages are readable; and on a pull
+          # request the branch head rather than the merge commit, so lint reads the working tree.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Tests
+        env:
+          GIT_AUTHOR_NAME: ci
+          GIT_AUTHOR_EMAIL: ci@example.invalid
+          GIT_COMMITTER_NAME: ci
+          GIT_COMMITTER_EMAIL: ci@example.invalid
+        run: bun run test
+
+      - name: Knowledge lint (advisory)
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          case "$BASE" in
+            ""|*[!0]*) ;;
+            *) BASE="" ;; # a new branch: `before` is all zeros
+          esac
+          if [ -n "$BASE" ]; then
+            bun run knowledge lint --range "$BASE..$HEAD_SHA" --json
+          else
+            echo "no base commit for this push; checking the store only"
+            bun run knowledge lint --json
+          fi
