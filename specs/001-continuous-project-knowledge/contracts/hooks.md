@@ -8,11 +8,32 @@ contains logic of its own, so a hook can never disagree with the command a devel
 
 `lint` runs in both places, deliberately.
 
-| Where | When | Blocking |
-|---|---|---|
-| `.githooks/pre-commit` | every commit | exit 2 or 3 blocks the commit; exit 1 does not |
-| `.githooks/pre-push` | every push | exit 2 or 3 blocks the push; exit 1 does not |
-| `.github/workflows/enouement.yml` | every push and PR | annotates; blocking is a repo setting |
+| Where | When | Runs | Blocking |
+|---|---|---|---|
+| `.githooks/pre-commit` | every commit | `enou lint --staged` | exit 2 or 3 blocks the commit; exit 1 does not |
+| `.githooks/pre-push` | every push | `enou lint --range <remote sha>..<local sha>` per pushed ref | exit 2 or 3 blocks the push; exit 1 does not |
+| `.github/workflows/enouement.yml` | every push to `main` and every PR | tests, then `enou lint --range <base>..<head> --json` | tests block; the lint step is advisory (`continue-on-error`) — blocking is a repo setting |
+
+**What each place can judge** (*decided 2026-10-31*). A pre-commit hook runs before the commit
+message exists, so it cannot see a `Knowledge-None:` statement and cannot judge FR-015; it checks
+the store exactly as it will be committed (the index, not the working tree). FR-015 is judged where
+commit messages exist: the pre-push hook, over the commits being pushed, and CI, over the pull
+request's own commits. Every mode reports what it did not check (contracts/cli.md, `enou lint`).
+
+For a new branch the pre-push hook measures from where the branch left the remote's default branch
+(`refs/remotes/<remote>/HEAD`); when that is unknown it checks the store only, and says so. Deleting
+a remote ref checks nothing.
+
+**Installing the hooks in a repository.** They are plain POSIX `sh` files with no logic of their own
+beyond the FR-042 pre-filter and exit-code mapping; everything else is `enou lint`.
+
+- A repository with no other git hooks: `git config core.hooksPath .githooks`.
+- A repository that already has hooks in `.git/hooks/` (or whose `core.hooksPath` points elsewhere):
+  do **not** repoint `core.hooksPath`, which would silently disable the existing hooks. Call ours from
+  the existing ones instead — append `"$(git rev-parse --show-toplevel)/.githooks/pre-commit" || exit $?`
+  to `.git/hooks/pre-commit`, and the same for `pre-push` passing `"$@"` and stdin through.
+- **This repository** is the second case: its `.git/hooks/pre-push` is the public-repository guard,
+  and CLAUDE.md forbids overriding `core.hooksPath` here. It is chained, never replaced.
 
 **The CI check reads the PR's commits, not the merge commit.** Squash merges recompose the commit
 message, and a `Knowledge-None:` trailer written on one of the branch's commits can end up outside
@@ -22,8 +43,8 @@ that *were* correctly declared — the fastest way to teach a team to ignore a c
 **Why both, and why this is not belt-and-braces.** A solo developer pushing straight to `main`
 never opens a pull request, so CI-on-PR alone would guarantee nothing for exactly the workflow
 this repository uses today. Conversely a local hook alone is bypassable with `--no-verify` and
-absent on a fresh clone. Neither half is sufficient; the pair is. The local hook is installed by
-`git config core.hooksPath .githooks`, recorded in quickstart.
+absent on a fresh clone. Neither half is sufficient; the pair is. How the local hooks are installed
+is above.
 
 Both call the identical command. If they ever disagree, that is a bug in the hook wiring, not a
 policy difference — which is the point of having one `lint`.
@@ -210,6 +231,12 @@ someone has not installed the tool.
 One exception: when `enou` **is** installed and `lint` fails to run, the git hook exits non-zero.
 A lint that silently passes when broken is worse than no lint (Principle II). "Not installed" and
 "installed but broken" are different states and are treated differently.
+
+How the git hooks map `enou lint`'s exit codes (*implemented 2026-10-31*, tested in
+`test/githooks.test.ts`): 0 passes; 2 (findings) and 3 (internal error) — or any other non-zero —
+block; 1 (`enou` refused its own arguments, a problem with the hook rather than with the change)
+does not block, but prints one line saying the change was not checked. Silence is reserved for
+"not installed" and "no store here"; an installed tool that did not check says so.
 
 ## 6. Latency budget for `PostToolUse(Read)`
 

@@ -1,0 +1,20 @@
+#!/bin/sh
+# enouement — check the staged knowledge store before a commit (contracts/hooks.md §1).
+#
+# Not installed, or no knowledge store in this repository: do nothing and say nothing (FR-042).
+# A teammate who never installed enou must never be blocked or warned by it.
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+[ -d "$root/.knowledge" ] || exit 0
+command -v enou >/dev/null 2>&1 || exit 0
+
+enou lint --staged
+status=$?
+case $status in
+  0) exit 0 ;;
+  1) # enou refused its own arguments: a hook problem, not your change. Say so; do not block.
+     echo "enouement pre-commit: enou lint refused to run (exit 1); the commit is not checked" >&2
+     exit 0 ;;
+  *) # 2: findings a reviewer must see. 3 or anything else: installed but broken — a lint that
+     # silently passes when broken is worse than none (contracts/hooks.md §5).
+     exit $status ;;
+esac
