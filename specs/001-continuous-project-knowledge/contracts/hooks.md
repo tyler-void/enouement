@@ -12,7 +12,7 @@ contains logic of its own, so a hook can never disagree with the command a devel
 |---|---|---|
 | `.githooks/pre-commit` | every commit | exit 2 or 3 blocks the commit; exit 1 does not |
 | `.githooks/pre-push` | every push | exit 2 or 3 blocks the push; exit 1 does not |
-| `.github/workflows/knowledge.yml` | every push and PR | annotates; blocking is a repo setting |
+| `.github/workflows/enouement.yml` | every push and PR | annotates; blocking is a repo setting |
 
 **The CI check reads the PR's commits, not the merge commit.** Squash merges recompose the commit
 message, and a `Knowledge-None:` trailer written on one of the branch's commits can end up outside
@@ -73,14 +73,14 @@ needs a test, not a comment.
 | Agent | Mechanism |
 |---|---|
 | Claude Code | `PostToolUse(Read)` hook emits the bounded view as `additionalContext`, **once per module per session** |
-
-⚠️ **Unverified assumption — confirm before building US3.** The documentation explicitly describes
-`hookSpecificOutput.additionalContext` for **`UserPromptSubmit`** hooks. It was not confirmed that
-`PostToolUse` supports the same field. If it does not, the delivery mechanism for US3 has to
-change — most likely to `UserPromptSubmit` with the module inferred from the prompt or the
-session's recent reads, which is a materially different design with a different dedup story. This
-is a US3 blocker, not an MVP one: US1 and US2 do not depend on it.
 | Every other agent | `enou view <module>` |
+
+> **Resolved 2026-09-21 — research.md §10, task T000.** This section first carried a warning that
+> `hookSpecificOutput.additionalContext` was documented only for `UserPromptSubmit`, so `PostToolUse`
+> might not surface it, which would have forced a different delivery design. The probe on Claude
+> Code 2.1.270 found that it **does** surface. The behaviour is still undocumented for
+> `PostToolUse`, so T046 re-runs the probe before the hook is built. The warning is kept in git
+> history; it is replaced here because, sitting inside the table, it also split the table in two.
 
 The hook resolves the read file to a declared module and suppresses if that module was already
 injected this session. If the read path belongs to no declared module, or the module has no

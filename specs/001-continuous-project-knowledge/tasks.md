@@ -267,7 +267,7 @@ may never run: a bar that is not met is a result, recorded as such (Principle V)
 ## Phase 9: Polish
 
 - [ ] T071 [P] Re-measure `why` latency against the real store and compare with research.md §3's 153 ms at 10k
-- [ ] T072 [P] Measure `git log --follow` and `--grep` cost on a repository with 10⁴–10⁵ commits (research.md §10 open risk). If git dominates, cache git output per invocation rather than indexing records
+- [ ] T072 [P] Measure `git log --follow` and `--grep` cost on a repository with 10⁴–10⁵ commits (research.md §11 open risk). If git dominates, cache git output per invocation rather than indexing records
 - [ ] T073 [P] Update `README.md` on `main` once the MVP lands — it currently says nothing is installable
 - [ ] T074 Report all success criteria with denominators, populations separated, `N=0` as "no data"
 
@@ -326,7 +326,7 @@ only T078 touches the product.
   and 2 checkpoints (T041 MVP, T057 personal dogfood)
 - **US1** 19 · **US2** 13 · **US3** 31 · **US4** 4 · **US5** 11 · measured recall 4 · probe/setup/foundation/blind-protocol/polish 35
 - **MVP = T001–T041.** Suggested first release boundary.
-- All 14 mandatory tests from plan.md are mapped: #1→T028, #3→T031, #4→T068, #5→T013, #5a→T014,
+- All 14 mandatory tests from plan.md are mapped: #1→T028, #2→T040b, #3→T031, #4→T068, #5→T013, #5a→T014,
   #6→T015, #7→T017, #8→T012/T037, #9→T061, #10→T032, #11→T051, #12→T049, #12a→T050, #13→T016
 - Mandatory tests added 2026-10-31: #14→T017b/T039b/T055e, #15→T032a, #16→T032b, #17→T044c,
   #18→T055g, #19→T039a, #20→T070a, #21→T055d, #22→T055f

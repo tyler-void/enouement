@@ -215,9 +215,9 @@ src/
 ├── records/<ULID>.md
 └── modules.yaml
 
-.specify/extensions/knowledge/ # spec-kit extension: before_specify, before_plan, after_implement
+.specify/extensions/enouement/ # spec-kit extension (id `enouement`): before_specify, before_plan, after_implement
 .githooks/pre-commit           # local half of enforcement
-.github/workflows/knowledge.yml# CI half of enforcement
+.github/workflows/enouement.yml # CI half of enforcement
 
 test/
 ├── client.ts                  # existing MCP smoke client

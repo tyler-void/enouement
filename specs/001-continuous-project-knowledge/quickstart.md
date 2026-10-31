@@ -19,7 +19,7 @@ YAML
 
 # 2. wire enforcement into BOTH halves — neither alone is sufficient
 git config core.hooksPath .githooks     # local: catches work that never opens a PR
-# CI: .github/workflows/knowledge.yml runs the identical `lint`
+# CI: .github/workflows/enouement.yml runs the identical `lint`
 
 # 3. check what is not covered, on purpose or otherwise
 enou modules uncovered
