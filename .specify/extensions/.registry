@@ -18,6 +18,21 @@
       },
       "registered_skills": [],
       "installed_at": "2026-06-09T11:21:01.751486+00:00"
+    },
+    "enouement": {
+      "version": "0.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:f927942d32b870e1cabd0397e2daf8b54cd79470db1386493125f49439554af5",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.enouement.brief",
+          "speckit.enouement.capture"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-10-31T05:23:03.470951+00:00"
     }
   }
 }

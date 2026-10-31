@@ -1,0 +1,52 @@
+schema_version: "1.0"
+
+extension:
+  id: enouement
+  name: "enouement — project knowledge"
+  version: "0.1.0"
+  description: "Brief the author on recorded knowledge before a spec or plan is written, and capture what a finished feature taught as drafts for a person to accept"
+  author: tyler-void
+  repository: https://github.com/tyler-void/enouement
+  license: Apache-2.0
+
+requires:
+  speckit_version: ">=0.2.0"
+  tools:
+    - name: enou
+      required: false
+
+provides:
+  commands:
+    - name: speckit.enouement.brief
+      file: commands/speckit.enouement.brief.md
+      description: "Put the recorded knowledge about the paths a feature will touch in front of the author, before the spec or plan is written"
+    - name: speckit.enouement.capture
+      file: commands/speckit.enouement.capture.md
+      description: "Capture the decisions, invariants, gotchas and conventions a finished feature taught, as drafts for a person to accept"
+
+# Mandatory (optional: false) on purpose: capture and briefing are triggered by the workflow, never
+# left to anyone's memory (constitution, Principle VI).
+#
+# ORDER MATTERS for after_implement: this extension must run BEFORE the git extension's
+# auto-commit, so the drafts land in the same commit as the work they describe. That commit is
+# what `enou` derives as the implementing commit (data-model §2.7). Installing appends hooks, so
+# after `specify extension add`, move the enouement entry to the top of `after_implement` in
+# .specify/extensions.yml — test/speckit.test.ts fails until you do.
+hooks:
+  before_specify:
+    command: speckit.enouement.brief
+    optional: false
+    description: "Brief the author on recorded knowledge about the paths this feature will touch"
+  before_plan:
+    command: speckit.enouement.brief
+    optional: false
+    description: "Brief the planner on recorded knowledge about the paths the plan will touch"
+  after_implement:
+    command: speckit.enouement.capture
+    optional: false
+    description: "Capture what the finished feature taught, as drafts for a person to accept"
+
+tags:
+  - "knowledge"
+  - "decisions"
+  - "memory"
