@@ -349,6 +349,52 @@ method rather than weakening the result:
 - The probe measured *arrival*, not *budget*. It says nothing about the latency cost of returning
   a large `additionalContext` on every read, which §3's tiering exists to control.
 
+### Re-run 2026-10-31 (T046) — **measured on Claude Code 2.1.295**
+
+**Probe, same method** (a throwaway directory outside this repository, `claude -p`, a
+`PostToolUse(Read)` hook printing a nonce in `additionalContext`): **it still surfaces.** The session
+answered `heliotrope ENOU-PROBE-7f3a91c2`.
+
+**`Stop` and `SessionStart`, probed rather than assumed** (a hook script logging every payload; the
+`Stop` hook blocking once). Observed:
+
+- `SessionStart` payload: `session_id`, `transcript_path`, `cwd`, `hook_event_name`, `source`
+  (`startup` in `-p` mode).
+- `PostToolUse` payload: as before, plus `tool_input.file_path` as an **absolute** path.
+- `Stop` payload: `session_id`, `cwd`, `transcript_path`, `stop_hook_active` (`false` on the first
+  stop), `last_assistant_message`. Printing `{"decision":"block","reason":"…"}` made the agent
+  continue and do what the reason asked; the stop that ended the continuation carried
+  `stop_hook_active: true`. That is what contracts/hooks.md §4 is now built on.
+
+**Latency of the hook as built** — measured, same run, samples interleaved with the baseline so
+machine load hits both equally (this machine, 80 pairs per run, three runs):
+
+| path | result | budget (contracts/hooks.md §6) |
+|---|---|---|
+| tier 1, no `.knowledge/` | **1.70 ms p95** vs `sh -c 'exit 0'` 1.69 ms | < 5 ms — **met** |
+| tier 2 miss, from TypeScript source | **+8.5 ms p50**, +9.6–11.8 ms p95 over `bun -e 0` | + 5 ms — **not met** |
+| tier 2 miss, single-file `bun build` bundle | **+6.6 ms p50**, +6.8 ms p95 | + 5 ms — **not met** |
+| the hook's own work, in-process | **0.04–0.09 ms** per miss | — |
+
+Where the time goes, each measured against `bun -e 0` in the same run: importing `node:crypto`
+**+6.0 ms**, `node:child_process` +2.7 ms, `node:fs` +1.9 ms, `node:path` +0.8 ms; `Bun.YAML`,
+`Bun.Glob` and one `Bun.spawnSync` under 1 ms each. Before any change a miss cost +11 ms; loading
+command handlers lazily (every command paid for loading all of them) and dropping `node:crypto` from
+the read path brought it to +8.5 ms. The remainder is start-up and module loading, which is a
+packaging question for spec 002 (bundle or compiled binary), not a coding one. Harness: the
+`latency` tests in `test/hook.test.ts`, which assert the tier-1 budget and keep a **+15 ms regression
+guard** for tier 2 — labelled as a guard, not as the budget.
+
+**End to end in a real session** (a throwaway repository with the settings from `claudeSettings()`,
+one accepted invariant, `enou` on `PATH` through a wrapper; `claude -p` 2.1.295):
+
+1. Reading a file in the declared module: the agent quoted the `SessionStart` line ("Modules with
+   current knowledge: src (1)") and the injected view with the record's id and summary.
+2. Asked to add a constant to that module: the `Stop` hook blocked once; the agent wrote one draft
+   (an invariant with a sound reason) with `enou record`, told the person to review and
+   `enou accept` it, and did **not** accept it. `offers.jsonl` held exactly one offer; `records/` was
+   unchanged.
+
 ## 11. Unmeasured — carried as risk, not as estimate
 
 | Unknown | Why it matters | Task |

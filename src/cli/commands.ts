@@ -313,9 +313,11 @@ export const RECALL: CommandDef = {
 
 export const HOOK: CommandDef = {
   name: "hook",
-  summary: "Entry point for agent hooks (Claude Code). Reads the hook's JSON on stdin; never blocks the agent.",
+  summary:
+    "Entry point for agent hooks (Claude Code). Reads the hook's JSON on stdin and always exits 0: it never " +
+    "blocks a read. Only `stop` may ask the agent, once per session, to capture what it learned.",
   positionals: [
-    { name: "event", description: "post-read | session-start | session-end", required: true, values: ["post-read", "session-start", "session-end"] },
+    { name: "event", description: "post-read | session-start | stop", required: true, values: ["post-read", "session-start", "stop"] },
   ],
   options: [],
 };

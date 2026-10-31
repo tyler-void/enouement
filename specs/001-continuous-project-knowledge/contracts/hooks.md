@@ -164,6 +164,22 @@ more robust ordering: it cannot clear markers for an injection that then survive
 Markers are disposable by construction. Losing them costs one redundant injection; keeping a stale
 one costs a session's worth of silence, which is why the reset matters more than the cleanup.
 
+**As built (2026-10-31, `src/knowledge/hooks.ts`).**
+
+- Layout: `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enou/<session>/view/` holds the delivery markers —
+  `m-<module>`, `f-<file>` (the path, URI-encoded; a long path falls back to a 64-bit FNV-1a hash)
+  and `r-<record id>`. Session bookkeeping (`start.json`, `offered`, §4) sits beside `view/`, not in
+  it, so a reset clears delivery and nothing else.
+- `<session>` is the payload's `session_id` when it is a plain token (letters, digits, `-`, `_`),
+  otherwise a hash of it — a session id can never name a path outside the marker root. Without a
+  `session_id` there is no dedup and every read delivers.
+- Reset: `SessionStart` with `source` **`compact` or `clear`** clears `view/`; `startup` and `resume`
+  keep it (a resumed conversation still holds what was injected).
+- If the environment points the marker root inside the repository, `/tmp/enou` is used instead.
+- Marker names use FNV-1a rather than a cryptographic hash: importing `node:crypto` costs ~6 ms
+  (measured, research.md §10), more than the whole tier-2 budget. They need to be stable and spread
+  out, not secret.
+
 This is the one Claude-Code-specific surface in the design. Principle III is satisfied because the
 CLI equivalent is not a degraded path — it renders the identical bytes (FR-032), and the hook
 itself calls it.
@@ -194,6 +210,55 @@ determined workaround; the move from `inbox/` to `records/` remains visible in e
 regardless, which is the backstop.
 
 ## 4. Capture outside spec-kit (increment US4)
+
+### As built (2026-10-31): a `Stop` hook asks the agent, once
+
+The design below this section assumed a worker that does the capture after the session ends. This
+product has no model of its own — the agent's model does every synthesis — and after `SessionEnd`
+there is no agent left to ask. So the offer is made **while the agent is still there**, through
+Claude Code's `Stop` hook, which fires when the agent finishes a turn.
+
+Verified on Claude Code 2.1.295 by a probe (research.md §10), not assumed: the `Stop` payload
+carries `session_id`, `cwd`, `transcript_path` and `stop_hook_active`; printing
+`{"decision":"block","reason":"…"}` makes the agent continue with the reason as its instruction;
+the `Stop` that ends that continuation arrives with `stop_hook_active: true`.
+
+`enou hook stop`:
+
+1. `stop_hook_active` is true → nothing (it is our own continuation ending).
+2. The session already received the offer (marker `offered`) → nothing. **At most once per
+   session** is the exclusive create of that marker, plus step 1 — two guards on one decision, and a
+   compaction does not reset it.
+3. The session changed code in a declared module → otherwise nothing. "Changed in this session" is
+   measured against the `start.json` that `enou hook session-start` writes: the HEAD at the start,
+   the record and draft ids present, and every path already differing from HEAD with its blob hash.
+   A path counts when it differs from the start HEAD (committed since, staged, or not) **and** was
+   not already dirty and untouched at the start. Paths under `.knowledge/` and paths in no module do
+   not count.
+4. The session captured a draft or a record (a new id in the store) → nothing.
+5. A commit since the start carries a `Knowledge-None:` trailer → nothing: that is the recorded
+   decline (FR-030).
+6. Otherwise: block once, with a reason that tells the agent to capture what it learned as drafts
+   with `enou record`, to tell the person which drafts to review and accept — never to accept them
+   itself — and, if nothing worth recording was learned, to say so to the person, who can put a
+   `Knowledge-None:` trailer on the commit. It tells the agent not to invent a record to satisfy the
+   reminder (FR-005).
+
+**Declines.** The durable decline is the `Knowledge-None:` trailer — in the change, reviewable, and
+what SC-007 counts. Each offer is also appended to `$(git rev-parse --git-dir)/enou/offers.jsonl`
+(session, modules, start HEAD, time): inside `.git`, so never committed, and local to the machine.
+Joined with the history afterwards (drafts captured, trailers written), it is what lets SC-007's
+"sessions that changed code outside spec-kit" be counted at all. Its limit is stated rather than
+hidden: a decline voiced in the conversation but never committed leaves only the offer, with no
+outcome.
+
+**Why `Stop` and not `SessionEnd`/`PreCompact`.** `SessionEnd` has no agent to ask and a ~1.5 s
+budget. `PreCompact` cannot make the agent do anything. `Stop` fires at the end of the very turn in
+which the work was done, which is also when what was learned is freshest.
+
+### Superseded 2026-10-31 — the design this replaced
+
+*Kept as written, per Principle IV. It assumed the capture could be done without the agent.*
 
 A session-end / pre-compaction hook offers capture at most once per session (FR-004). Declining
 is recorded, not silent, so SC-007 can count it. The offer fires only if code changed in a
@@ -322,6 +387,16 @@ test that CI has to satisfy.
 
 Tier 2 must still open **no record file**. The check order is fixed: store present (tier 1),
 module membership, per-session dedup (module marker, then file marker), and only then records.
+
+**Measured 2026-10-31 — the budget is NOT met** (research.md §10). A miss costs about **+8.5 ms
+(p50)** over an empty `bun` program when `enou` runs from TypeScript source, and **+6.6 ms** from a
+single-file `bun build` bundle; the hook's own work is under 0.1 ms. The rest is runtime start-up and
+module loading: `node:fs` + `node:path` alone cost ~2.6 ms. What was cut on the way: lazy loading of
+command handlers (every command, not only the hook, paid for loading all of them) and of the view
+code, and dropping `node:crypto` from the read path (~6 ms). Closing the remaining gap belongs to
+spec 002's packaging choice — a bundle or a compiled binary — not to more code here. "Opens no record
+file" holds and is tested; the latency test is a regression guard at +15 ms, labelled as such, not a
+claim that +5 ms holds.
 
 ### Injecting path — unchanged
 
