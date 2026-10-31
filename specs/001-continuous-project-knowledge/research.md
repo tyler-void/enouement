@@ -393,6 +393,20 @@ steps if it matters: build the trust view once per brief rather than once per pa
 implementing commits for all matched records with one `git log --diff-filter=A --name-only` over
 `.knowledge/` instead of one call per record. Re-run this harness to measure either.
 
+**Re-measured after both steps — 2026-10-31, same harness, same machine.** The trust view is now
+built once per command and implementing commits come from one `git log` over the store:
+
+| Paths | `enou brief` p50 / p95 | git skipped p50 / p95 |
+|---|---|---|
+| 1 | 207 / 248 ms | 174 / 195 ms |
+| 10 | 551 / 598 ms | 425 / 518 ms |
+| 100 | 1,888 / 2,028 ms | 1,001 / 1,077 ms |
+
+100 paths went from 5,980 to 2,028 ms at p95. What remains grows with the path count: per-path rename
+history and trailer lookups (one `git log` each) and the per-path record scan. A brief over the paths
+one feature touches is well under a second; 100 paths is about two seconds, which the `before_*`
+spec-kit hooks tolerate. No index is built (§8).
+
 ## 12. The accept gate — **decision, 2026-10-31**
 
 **What changed.** §1 recorded that all three prior-art projects put a human accept step between

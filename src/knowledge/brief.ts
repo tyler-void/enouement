@@ -16,7 +16,7 @@ import type { Issue } from "./record";
 import type { StoreSnapshot } from "./store";
 import { buildTrust, type TrustView } from "./trust";
 import { moduleView, renderView } from "./view";
-import { orderBySupersession, whyPath, type WhyOptions, type WhyRecord } from "./why";
+import { orderBySupersession, whyPath, type WhyOptions, type WhyRecord, implementingCommits } from "./why";
 
 /** The checks a brief runs today, in the order they are reported. */
 export const BRIEF_CHECKS = ["uncovered-path", "module-without-knowledge", "drafts-waiting"] as const;
@@ -71,6 +71,7 @@ export function brief(
 ): Brief {
   const asked = [...new Set(paths)];
   const trust = buildTrust(snapshot);
+  opts = { ...opts, trust, commits: opts.noGit ? undefined : (opts.commits ?? implementingCommits(root)) };
   const records = new Map<string, WhyRecord>();
   const drafts = new Map<string, WhyRecord>();
   for (const p of asked) {

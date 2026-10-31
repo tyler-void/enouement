@@ -48,6 +48,31 @@ export function implementingCommit(root: string, id: string): string | null {
   return lines.length ? lines[lines.length - 1]! : null;
 }
 
+/**
+ * The implementing commit of every record and draft, from ONE `git log` over the store, instead of
+ * one git process per record — the per-record call was what made a brief over many paths slow
+ * (research.md §11, T055h). Same rule as implementingCommit: the oldest commit that added the file
+ * under either directory.
+ */
+export function implementingCommits(root: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const r = git(
+    ["log", "--diff-filter=A", "--format=%x00%H", "--name-only", "--", `${STORE_DIR}/records/`, `${STORE_DIR}/inbox/`],
+    root,
+  );
+  if (r.code !== 0) return out;
+  // Newest first, so the last commit seen for an id is its oldest.
+  for (const chunk of r.stdout.split("\0")) {
+    const [sha, ...files] = chunk.split("\n").filter(Boolean);
+    if (!sha) continue;
+    for (const f of files) {
+      const m = /\/([0-9A-HJKMNP-TV-Z]{26})\.md$/.exec(f);
+      if (m) out.set(m[1]!, sha);
+    }
+  }
+  return out;
+}
+
 /** Every name the file has had, following git's rename detection (FR-038). */
 export function renameHistory(root: string, path: string): string[] {
   const r = git(["log", "--follow", "--name-only", "--format=", "--", path], root);
@@ -106,6 +131,10 @@ export interface WhyAnswer {
 
 export interface WhyOptions {
   includeDrafts?: boolean;
+  /** A trust view already built for this snapshot — a brief builds it once, not once per path. */
+  trust?: TrustView;
+  /** Implementing commits already looked up (implementingCommits) — one git call per command. */
+  commits?: Map<string, string>;
   /** Skip git (rename history, trailers, implementing commits) — for tests and degraded setups. */
   noGit?: boolean;
 }
@@ -165,7 +194,7 @@ export function orderBySupersession<T extends { id: string; front: { supersedes?
   return out;
 }
 
-function toWhy(root: string, id: string, k: Known, trust: TrustView, reasons: string[], opts: WhyOptions): WhyRecord {
+function toWhy(_root: string, id: string, k: Known, trust: TrustView, reasons: string[], opts: WhyOptions): WhyRecord {
   const s = statusOf(trust, id);
   return {
     id,
@@ -174,7 +203,7 @@ function toWhy(root: string, id: string, k: Known, trust: TrustView, reasons: st
     path: k.path,
     status: s.status === "superseded" ? "superseded" : s.status === "draft" ? "draft" : "current",
     supersededBy: s.status === "superseded" ? s.by : [],
-    implementingCommit: opts.noGit ? null : implementingCommit(root, id),
+    implementingCommit: opts.noGit ? null : (opts.commits?.get(id) ?? null),
     matchedBy: reasons,
   };
 }
@@ -187,7 +216,8 @@ export function whyPath(
   path: string,
   opts: WhyOptions = {},
 ): WhyAnswer {
-  const trust = buildTrust(snapshot);
+  const trust = opts.trust ?? buildTrust(snapshot);
+  opts = { ...opts, trust, commits: opts.noGit ? undefined : (opts.commits ?? implementingCommits(root)) };
   const former = opts.noGit || !isFileLike(root, path) ? [] : renameHistory(root, path);
   const names = [...new Set([path, ...former, ...formerlyAliases(modules, path)])];
   const trailers = opts.noGit ? new Map<string, string[]>() : trailerIds(root, names);
