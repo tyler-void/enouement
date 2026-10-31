@@ -6,17 +6,8 @@
 // tool never looks like a careful one; the stack trace is printed only with ENOU_DEBUG set.
 
 import { COMMANDS, parseArgs, usage, type Args, type CommandDef } from "./commands";
-import { runAccept, runDrafts, runReject } from "./drafts";
-import { runHook } from "./hook";
-import { runLint } from "./lint";
-import { runModules } from "./modules";
-import { runRecall } from "./recall";
-import { runRecord } from "./record";
-import { runRedact } from "./redact";
 import { findRoot } from "./root";
 import { EXIT } from "./util";
-import { runBrief, runLog, runShow, runView } from "./view";
-import { runWhy } from "./why";
 
 export { EXIT };
 
@@ -31,21 +22,23 @@ export interface Io {
 
 type Handler = (args: Args, ctx: { root: string; io: Io }) => number | Promise<number>;
 
-const HANDLERS: Record<string, Handler> = {
-  record: runRecord,
-  drafts: runDrafts,
-  accept: runAccept,
-  reject: runReject,
-  why: runWhy,
-  brief: runBrief,
-  view: runView,
-  log: runLog,
-  show: runShow,
-  redact: runRedact,
-  lint: runLint,
-  modules: runModules,
-  recall: runRecall,
-  hook: runHook,
+// Handlers load on demand: a process runs one command, and loading every handler at startup cost
+// ~25 ms — more than the whole budget of a hook that fires on every file read (contracts/hooks.md §6).
+const HANDLERS: Record<string, () => Promise<Handler>> = {
+  record: () => import("./record").then((m) => m.runRecord),
+  drafts: () => import("./drafts").then((m) => m.runDrafts),
+  accept: () => import("./drafts").then((m) => m.runAccept),
+  reject: () => import("./drafts").then((m) => m.runReject),
+  why: () => import("./why").then((m) => m.runWhy),
+  brief: () => import("./view").then((m) => m.runBrief),
+  view: () => import("./view").then((m) => m.runView),
+  log: () => import("./view").then((m) => m.runLog),
+  show: () => import("./view").then((m) => m.runShow),
+  redact: () => import("./redact").then((m) => m.runRedact),
+  lint: () => import("./lint").then((m) => m.runLint),
+  modules: () => import("./modules").then((m) => m.runModules),
+  recall: () => import("./recall").then((m) => m.runRecall),
+  hook: () => import("./hook").then((m) => m.runHook),
 };
 
 function topUsage(): string {
@@ -92,7 +85,7 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       io.err(`enou ${def.name}: ${root.message}`);
       return EXIT.refused;
     }
-    return await handler(parsed.args, { root: root.root, io });
+    return await (await handler())(parsed.args, { root: root.root, io });
   } catch (e) {
     io.err(`enou: internal error: ${e instanceof Error ? e.message : String(e)}`);
     if (io.env.ENOU_DEBUG && e instanceof Error && e.stack) io.err(e.stack);
