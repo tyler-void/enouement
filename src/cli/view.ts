@@ -2,6 +2,7 @@
 // `enou show` — the read surface of US3.
 
 import { brief, type Brief } from "../knowledge/brief";
+import { integrityChecks } from "../knowledge/brief-checks";
 import { isUlid } from "../knowledge/id";
 import { loadStore } from "../knowledge/store";
 import { buildTrust, statusOf } from "../knowledge/trust";
@@ -110,7 +111,10 @@ export function runBrief(args: Args, ctx: Ctx): number {
     }
     paths.push(r.path);
   }
-  const b = brief(ctx.root, loadStore(ctx.root), modules, paths, { includeDrafts: Boolean(args.include_drafts) });
+  const b = brief(ctx.root, loadStore(ctx.root), modules, paths, {
+    includeDrafts: Boolean(args.include_drafts),
+    checks: integrityChecks(ctx.root),
+  });
   if (args.json)
     json(ctx, {
       paths: b.paths,

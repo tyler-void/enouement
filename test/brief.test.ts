@@ -39,7 +39,7 @@ describe("enou brief", () => {
       ["uncovered-path", "docs/x.md"],
       ["module-without-knowledge", "src/empty"],
     ]);
-    expect(b.checked).toEqual([...BRIEF_CHECKS]);
+    expect(b.checked).toEqual([...BRIEF_CHECKS, "contradiction", "dangling-reference"]);
   });
 
   test("a module whose records are all superseded is a gap too", async () => {
@@ -56,7 +56,7 @@ describe("enou brief", () => {
       const a = await enou(root, ["brief", ...argv]);
       const b = await enou(root, ["brief", ...argv]);
       expect(a.out).toBe(b.out);
-      expect(a.out).toContain(`checked: ${BRIEF_CHECKS.join(", ")}`);
+      expect(a.out).toContain(`checked: ${[...BRIEF_CHECKS, "contradiction", "dangling-reference"].join(", ")}`);
     }
   });
 
@@ -117,5 +117,29 @@ describe("drafts never surface as knowledge without --include-drafts (T055e, pla
     putRecord(root, "inbox", front({ id: ids[6], summary: "replacement", paths: ["src/util/a.ts"], supersedes: ids[0] }));
     const b = await briefJson(root, ["src/util/a.ts"]);
     expect(b.records.find((r: { id: string }) => r.id === ids[0]).status).toBe("current");
+  });
+});
+
+// T063a — once US5 exists, a brief also checks contradictions and dangling references.
+import { putRecord as putRec, front as fm, tempRoot as tmp, put as putFile, IDS as I } from "./support/repo";
+import { enou as run } from "./support/cli";
+
+describe("brief: integrity checks (T063a)", () => {
+  test("lists contradiction and dangling-reference among the checks, and reports both", async () => {
+    const root = tmp();
+    putFile(root, ".knowledge/modules.yaml", "modules:\n  - path: src\n");
+    putFile(root, "src/a.ts", "");
+    putRec(root, "records", fm({ id: I.a, paths: ["src/a.ts"] }));
+    putRec(root, "records", fm({ id: I.b, paths: ["src/a.ts"], supersedes: I.a }));
+    putRec(root, "records", fm({ id: I.c, paths: ["src/a.ts"], supersedes: I.a }));
+    putRec(root, "records", fm({ id: I.d, paths: ["src/a.ts", "src/gone.ts"] }));
+    const r = await run(root, ["brief", "src/a.ts", "--json"]);
+    expect(r.code).toBe(0);
+    const b = JSON.parse(r.out);
+    expect(b.checked).toContain("contradiction");
+    expect(b.checked).toContain("dangling-reference");
+    const checks = b.gaps.map((g: { check: string }) => g.check);
+    expect(checks).toContain("contradiction");
+    expect(b.gaps.find((g: { check: string }) => g.check === "dangling-reference")).toMatchObject({ id: I.d, path: "src/gone.ts" });
   });
 });
