@@ -4,11 +4,16 @@
   "type": "module",
   "license": "Apache-2.0",
   "description": "Eco-MCP — project memory for AI coding agents over MCP: read and write per-module Context Packs (.context/*.md) that live in the repo and go through code review.",
-  "bin": { "eco-mcp": "src/server.ts" },
+  "bin": {
+    "eco-mcp": "src/server.ts",
+    "enou": "src/cli/main.ts"
+  },
   "scripts": {
     "start": "bun run src/server.ts",
+    "knowledge": "bun src/cli/main.ts",
+    "test:knowledge": "bun test ./test/id.test.ts ./test/record.test.ts ./test/secrets.test.ts ./test/store.test.ts ./test/trust.test.ts ./test/modules.test.ts ./test/lint.test.ts ./test/cli.test.ts ./test/platform-seam.test.ts",
     "test:client": "bun run test/client.ts",
-    "test": "bun run test:client"
+    "test": "bun run test:knowledge && bun run test:client"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
